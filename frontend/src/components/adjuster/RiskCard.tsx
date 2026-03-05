@@ -1,48 +1,56 @@
-import type { Claim } from '../../types/claim'
-import { RiskBadge } from '../StatusBadge'
+import type { RiskLevel } from '../../types/claim'
 
-export default function RiskCard({ claim }: { claim: Claim }) {
+interface Props {
+  riskLevel?: RiskLevel
+  contestabilityAlert?: boolean
+  monthsSinceIssue?: number
+  flags?: string[]
+  recommendation?: string
+  summary?: string
+}
+
+export default function RiskCard({ riskLevel, contestabilityAlert, monthsSinceIssue, flags, recommendation, summary }: Props) {
+  if (!riskLevel) return null
+
   return (
-    <div className="card mb-16" style={{ borderLeft: `4px solid ${claim.risk_level === 'high' ? 'var(--color-danger)' : claim.risk_level === 'medium' ? 'var(--color-warning)' : 'var(--color-success)'}` }}>
-      <div className="d-flex justify-between align-center mb-12">
-        <h4>AI Risk Assessment</h4>
-        {claim.risk_level && <RiskBadge level={claim.risk_level} />}
+    <div className={`risk-card risk-card--${riskLevel}`} style={{ marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+        <h4 style={{ margin: 0 }}>AI Risk Assessment</h4>
+        <span className={`badge badge-risk-${riskLevel}`}>
+          {riskLevel === 'high' ? '🔴' : riskLevel === 'medium' ? '🟡' : '🟢'} {riskLevel} risk
+        </span>
       </div>
 
-      {claim.contestability_alert && (
-        <div className="alert alert-danger mb-12">
-          <span>⚠️</span>
+      {summary && <p style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>{summary}</p>}
+
+      {contestabilityAlert && (
+        <div className="contestability-alert">
+          <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>⚠️</span>
           <div>
-            <strong>Contestability Alert</strong>
-            <p style={{ marginTop: 4, fontSize: '0.875rem' }}>
-              Policy is {Math.round(claim.months_since_issue || 0)} months old — within the 2-year contestability period.
-              Recommend medical records review before approving.
+            <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-danger)' }}>Contestability Period</p>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.125rem' }}>
+              Policy issued {monthsSinceIssue ? `${Math.round(monthsSinceIssue)} months ago` : 'recently'} —
+              within 2-year contestability window. Recommend medical records review.
             </p>
           </div>
         </div>
       )}
 
-      {claim.risk_flags && claim.risk_flags.length > 0 && (
-        <div className="mb-12">
-          <p className="text-muted fw-600 mb-8" style={{ fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Risk Flags
-          </p>
-          <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {claim.risk_flags.map((flag, i) => (
-              <li key={i} style={{ fontSize: '0.875rem', color: 'var(--color-text)' }}>{flag}</li>
-            ))}
-          </ul>
-        </div>
+      {flags && flags.length > 0 && (
+        <ul className="flag-list">
+          {flags.map((flag, i) => (
+            <li key={i} className="flag-item">
+              <span style={{ color: 'var(--color-danger)', flexShrink: 0 }}>•</span>
+              {flag}
+            </li>
+          ))}
+        </ul>
       )}
 
-      {claim.ai_summary && (
-        <div style={{ background: 'var(--color-surface-2)', padding: '12px 14px', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
-          {claim.ai_summary}
+      {recommendation && (
+        <div style={{ marginTop: '0.875rem', padding: '0.625rem 0.875rem', background: 'rgba(0,0,0,0.05)', borderRadius: 'var(--radius)', fontSize: '0.875rem' }}>
+          <strong>Recommendation:</strong> {recommendation.replace(/_/g, ' ')}
         </div>
-      )}
-
-      {!claim.risk_level && (
-        <p className="text-muted" style={{ fontSize: '0.875rem' }}>AI assessment will be available after claim submission.</p>
       )}
     </div>
   )

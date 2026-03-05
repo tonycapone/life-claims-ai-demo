@@ -1,61 +1,68 @@
-import { useClaim } from '../contexts/ClaimContext'
 import { useNavigate } from 'react-router-dom'
+import { useClaim } from '../contexts/ClaimContext'
 
-const STEPS = [
-  { label: 'Claim Received', status: 'complete' as const },
-  { label: 'Under Review', status: 'current' as const },
-  { label: 'Decision', status: 'pending' as const },
-  { label: 'Payout', status: 'pending' as const },
+const TRACKER_STEPS = [
+  { label: 'Claim Received', desc: 'Your claim has been submitted successfully.', status: 'complete' },
+  { label: 'Under Review', desc: 'Our team is reviewing your claim.', status: 'active' },
+  { label: 'Decision', desc: 'Approval, denial, or request for more info.', status: 'pending' },
+  { label: 'Payout', desc: 'Funds disbursed to your account.', status: 'pending' },
 ]
 
 export default function Confirmation() {
-  const { draft } = useClaim()
+  const { draft, clearDraft } = useClaim()
   const navigate = useNavigate()
 
   return (
     <div className="page">
-      <div style={{ textAlign: 'center', padding: '32px 0 24px' }}>
-        <div style={{ fontSize: '4rem', marginBottom: 12 }}>🎉</div>
-        <h1 style={{ marginBottom: 8 }}>Claim Submitted</h1>
-        <p className="text-muted">Your claim has been submitted successfully.</p>
+      <div className="page-header">
+        <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
       </div>
 
-      <div className="card mb-16">
-        <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: 4 }}>Your claim number</p>
-        <h2 style={{ color: 'var(--color-primary)', letterSpacing: '0.05em' }}>{draft.claim_number || 'CLM-2026-00001'}</h2>
-        <p className="text-muted mt-8" style={{ fontSize: '0.875rem' }}>Save this number to check your claim status later.</p>
-      </div>
-
-      <div className="card mb-16">
-        <h3 style={{ marginBottom: 20 }}>What Happens Next</h3>
-        <div className="timeline">
-          {STEPS.map((s) => (
-            <div key={s.label} className="timeline-item">
-              <div className={`timeline-dot timeline-dot-${s.status}`}>
-                {s.status === 'complete' ? '✓' : s.status === 'current' ? '⏳' : '○'}
-              </div>
-              <div className="timeline-content">
-                <h4>{s.label}</h4>
-                {s.status === 'complete' && <p>Received on {new Date().toLocaleDateString()}</p>}
-                {s.status === 'current' && <p>Our team is reviewing your claim</p>}
-              </div>
-            </div>
-          ))}
+      <div className="page-content">
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>✅</div>
+          <h2 style={{ marginBottom: '0.5rem' }}>Claim Submitted</h2>
+          <p className="text-muted">Your claim number is:</p>
+          <p className="font-bold" style={{ fontSize: '1.375rem', color: 'var(--color-primary)', letterSpacing: '0.05em', marginTop: '0.25rem' }}>
+            {draft.claim_number || 'CLM-2026-XXXXX'}
+          </p>
         </div>
+
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <p className="card-title">What happens next</p>
+          <div className="claim-tracker">
+            {TRACKER_STEPS.map((s, i) => (
+              <div key={s.label} className={`tracker-step ${s.status === 'complete' ? 'tracker-step--complete' : ''}`}>
+                <div className={`tracker-icon ${s.status === 'complete' ? 'tracker-icon--complete' : s.status === 'active' ? 'tracker-icon--active' : ''}`}>
+                  {s.status === 'complete' ? <span style={{ color: 'white' }}>✓</span>
+                   : s.status === 'active' ? <span style={{ color: 'white' }}>⏳</span>
+                   : <span style={{ color: 'var(--color-muted)' }}>{i + 1}</span>}
+                </div>
+                <div className="tracker-text">
+                  <h4>{s.label}</h4>
+                  <p>{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
+          We'll email updates to <strong>{draft.beneficiary_email || 'your email'}</strong>.
+          Standard claims are typically resolved within 14–30 days.
+        </div>
+
+        <p className="text-sm text-muted text-center" style={{ marginBottom: '1rem' }}>
+          Questions? Call <a href="tel:18005246272">1-800-CLAIMPATH</a> with your claim number.
+        </p>
+
+        <button
+          className="btn btn-secondary btn--full"
+          onClick={() => { clearDraft(); navigate('/') }}
+        >
+          Done
+        </button>
       </div>
-
-      <div className="alert alert-info mb-16">
-        <span>📧</span>
-        <div>We'll email you at <strong>{draft.beneficiary_email}</strong> with status updates.</div>
-      </div>
-
-      <p className="text-muted text-center" style={{ fontSize: '0.875rem', marginBottom: 16 }}>
-        Standard claims are typically resolved within <strong>14–30 days</strong>.
-      </p>
-
-      <button className="btn btn-outline btn-full" onClick={() => navigate('/claim/status')}>
-        Check Claim Status
-      </button>
     </div>
   )
 }
