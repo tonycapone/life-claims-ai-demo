@@ -14,17 +14,10 @@ export class ClaimPathStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // ─── VPC — public subnets only, no NAT gateway (~$32/mo savings) ─────────
+    // ─── VPC — public + private subnets, single NAT gateway ─────────────────
     const vpc = new ec2.Vpc(this, 'ClaimPathVPC', {
       maxAzs: 2,
-      natGateways: 0,           // no NAT — everything in public subnets
-      subnetConfiguration: [
-        {
-          name: 'Public',
-          subnetType: ec2.SubnetType.PUBLIC,
-          cidrMask: 24,
-        },
-      ],
+      natGateways: 1, // 1 shared NAT (default is 1 per AZ — this saves ~$32/mo)
     });
 
     // ─── ECS Cluster ─────────────────────────────────────────────────────────
@@ -50,14 +43,14 @@ export class ClaimPathStack extends cdk.Stack {
         version: rds.PostgresEngineVersion.VER_15,
       }),
       vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // ~$13/mo
       allocatedStorage: 20,        // minimum
       maxAllocatedStorage: 20,     // no autoscaling
       securityGroups: [dbSecurityGroup],
       credentials: rds.Credentials.fromSecret(dbCredentials),
       multiAz: false,              // single AZ
-      publiclyAccessible: true,
+      publiclyAccessible: false,
       databaseName: 'claimpath',
       backupRetention: cdk.Duration.days(1), // minimum allowed
       deleteAutomatedBackups: true,
@@ -121,8 +114,7 @@ export class ClaimPathStack extends cdk.Stack {
         cpu: 256,            // 0.25 vCPU — minimum
         memoryLimitMiB: 512, // 512MB — minimum
         desiredCount: 1,     // single task — no redundancy
-        assignPublicIp: true, // required since no NAT
-        taskSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+        taskSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
         taskImageOptions: {
           containerPort: 8000,
           image: ecs.ContainerImage.fromAsset('../backend', {
