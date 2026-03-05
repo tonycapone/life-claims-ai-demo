@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Float, Enum, Text, Boolean, JSON
+from sqlalchemy import Column, String, DateTime, Float, Enum, Text, Boolean, JSON, Integer
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -7,6 +7,45 @@ import uuid
 
 def new_uuid():
     return str(uuid.uuid4())
+
+
+class PolicyType(str, enum.Enum):
+    TERM = "term"
+    FINAL_EXPENSE = "final_expense"
+    IUL = "iul"
+
+
+class PolicyStatus(str, enum.Enum):
+    IN_FORCE = "in_force"
+    LAPSED = "lapsed"
+    CANCELLED = "cancelled"
+
+
+class Policy(Base):
+    __tablename__ = "policies"
+
+    id = Column(String, primary_key=True, default=new_uuid)
+    policy_number = Column(String, unique=True, nullable=False, index=True)
+    insured_name = Column(String, nullable=False)
+    insured_dob = Column(String)               # YYYY-MM-DD
+    insured_ssn_last4 = Column(String)
+    face_amount = Column(Float, nullable=False)
+    issue_date = Column(String, nullable=False) # YYYY-MM-DD
+    policy_type = Column(Enum(PolicyType), nullable=False)
+    status = Column(Enum(PolicyStatus), default=PolicyStatus.IN_FORCE)
+    beneficiaries = Column(JSON)               # [{name, relationship, percentage}]
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Adjuster(Base):
+    __tablename__ = "adjusters"
+
+    id = Column(String, primary_key=True, default=new_uuid)
+    username = Column(String, unique=True, nullable=False, index=True)
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class ClaimStatus(str, enum.Enum):
