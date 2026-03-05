@@ -1,18 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useIdentityVerify } from '../hooks/useClaim'
 import { useClaim } from '../contexts/ClaimContext'
+import { useIdentityVerify } from '../hooks/useClaim'
 import StepIndicator from '../components/StepIndicator'
+
+type Step = 'id' | 'selfie' | 'verifying' | 'done'
 
 export default function IdentityVerify() {
   const navigate = useNavigate()
-  const { draft, setDraft } = useClaim()
+  const { draft } = useClaim()
   const { verify } = useIdentityVerify()
-  const [step, setStep] = useState<'id' | 'selfie' | 'verifying' | 'done'>('id')
+  const [step, setStep] = useState<Step>('id')
+  const [idUploaded, setIdUploaded] = useState(false)
 
-  async function handleIdUploaded() { setStep('selfie') }
+  const handleIdUpload = () => {
+    setIdUploaded(true)
+    setTimeout(() => setStep('selfie'), 800)
+  }
 
-  async function handleSelfie() {
+  const handleSelfie = () => {
     setStep('verifying')
     setTimeout(async () => {
       if (draft.claim_id) await verify(draft.claim_id)
@@ -20,67 +26,80 @@ export default function IdentityVerify() {
     }, 2000)
   }
 
-  function handleContinue() {
-    setDraft({ current_step: 6 })
-    navigate('/claim/payout')
-  }
-
   return (
     <div className="page">
-      <StepIndicator currentStep={5} />
       <div className="page-header">
-        <h1>Identity Verification</h1>
-        <p>We need to verify your identity before processing the claim.</p>
+        <button className="btn btn-ghost btn--sm" style={{ color: 'white', padding: '0.25rem 0.5rem' }} onClick={() => navigate(-1)}>←</button>
+        <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
       </div>
+      <StepIndicator currentStep={5} />
 
-      {step === 'id' && (
-        <div className="card stack stack-md">
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 16 }}>🪪</div>
-            <h3 style={{ marginBottom: 8 }}>Upload Your Government ID</h3>
-            <p className="text-muted" style={{ marginBottom: 24, fontSize: '0.9375rem' }}>
-              Driver's license or passport. Front and back if driver's license.
-            </p>
-            <button className="btn btn-primary" onClick={handleIdUploaded}>
-              Upload ID (Mock)
+      <div className="page-content">
+        <h2 style={{ marginBottom: '0.5rem' }}>Verify Your Identity</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+          We need to verify who you are to protect you and the estate.
+        </p>
+
+        {step === 'id' && (
+          <>
+            <div className="verify-step">
+              <div className="verify-icon" style={{ background: '#dbeafe' }}>🪪</div>
+              <div>
+                <p className="font-medium">Step 1: Upload your ID</p>
+                <p className="text-sm text-muted">Driver's license or passport</p>
+              </div>
+            </div>
+            <div className="verify-step" style={{ opacity: 0.4 }}>
+              <div className="verify-icon" style={{ background: '#f1f5f9' }}>🤳</div>
+              <div>
+                <p className="font-medium">Step 2: Take a selfie</p>
+                <p className="text-sm text-muted">Quick liveness check</p>
+              </div>
+            </div>
+            <button className="btn btn-primary btn--full" style={{ marginTop: '1rem' }} onClick={handleIdUpload}>
+              {idUploaded ? '✓ ID Uploaded' : 'Upload ID Document'}
+            </button>
+          </>
+        )}
+
+        {step === 'selfie' && (
+          <>
+            <div className="verify-step" style={{ opacity: 0.4 }}>
+              <div className="verify-icon" style={{ background: '#dcfce7' }}>✅</div>
+              <div><p className="font-medium">ID uploaded</p></div>
+            </div>
+            <div className="verify-step">
+              <div className="verify-icon" style={{ background: '#dbeafe' }}>🤳</div>
+              <div>
+                <p className="font-medium">Step 2: Take a selfie</p>
+                <p className="text-sm text-muted">Hold your phone at face level and smile</p>
+              </div>
+            </div>
+            <button className="btn btn-primary btn--full" style={{ marginTop: '1rem' }} onClick={handleSelfie}>
+              Take Selfie
+            </button>
+          </>
+        )}
+
+        {step === 'verifying' && (
+          <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+            <span className="spinner spinner--lg" style={{ margin: '0 auto 1rem' }} />
+            <p className="font-medium">Verifying your identity...</p>
+            <p className="text-sm text-muted">This takes just a moment</p>
+          </div>
+        )}
+
+        {step === 'done' && (
+          <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
+            <h3 style={{ marginBottom: '0.5rem' }}>Identity Verified</h3>
+            <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>Your identity has been confirmed.</p>
+            <button className="btn btn-primary btn--full" onClick={() => navigate('/claim/payout')}>
+              Continue
             </button>
           </div>
-        </div>
-      )}
-
-      {step === 'selfie' && (
-        <div className="card stack stack-md">
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 16 }}>🤳</div>
-            <h3 style={{ marginBottom: 8 }}>Take a Selfie</h3>
-            <p className="text-muted" style={{ marginBottom: 24, fontSize: '0.9375rem' }}>
-              We'll compare your selfie to your ID to confirm your identity.
-            </p>
-            <button className="btn btn-primary" onClick={handleSelfie}>
-              Take Selfie (Mock)
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 'verifying' && (
-        <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <span className="spinner" style={{ width: 40, height: 40, borderWidth: 4 }} />
-          <p className="mt-16 fw-600">Verifying your identity...</p>
-          <p className="text-muted" style={{ fontSize: '0.875rem' }}>This will only take a moment.</p>
-        </div>
-      )}
-
-      {step === 'done' && (
-        <div className="card stack stack-md" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3.5rem' }}>✅</div>
-          <h3 style={{ color: 'var(--color-success)' }}>Identity Verified</h3>
-          <p className="text-muted">Your identity has been successfully confirmed.</p>
-          <button className="btn btn-primary btn-full btn-lg" onClick={handleContinue}>
-            Continue
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
