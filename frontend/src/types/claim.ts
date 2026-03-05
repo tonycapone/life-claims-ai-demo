@@ -1,0 +1,83 @@
+export type ClaimStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'pending_documents'
+  | 'contestability_review'
+  | 'siu_review'
+  | 'approved'
+  | 'paid'
+  | 'denied'
+
+export type RiskLevel = 'low' | 'medium' | 'high'
+
+export type MannerOfDeath = 'natural' | 'accident' | 'undetermined'
+
+export type PayoutMethod = 'lump_sum' | 'structured'
+
+export interface ClaimDocument {
+  id: string
+  type: 'death_certificate' | 'beneficiary_id' | 'medical_records' | 'other'
+  filename: string
+  uploaded_at: string
+  extracted_data?: DeathCertificateExtraction
+}
+
+export interface DeathCertificateExtraction {
+  deceased_name?: string
+  date_of_death?: string
+  cause_of_death?: string
+  manner_of_death?: string
+  certifying_physician?: string
+  jurisdiction?: string
+  certificate_number?: string
+}
+
+export interface Claim {
+  id: string
+  claim_number: string
+  policy_number: string
+  insured_name: string
+  beneficiary_name?: string
+  beneficiary_email?: string
+  beneficiary_phone?: string
+  beneficiary_relationship?: string
+  identity_verified: boolean
+  date_of_death?: string
+  cause_of_death?: string
+  manner_of_death?: string
+  payout_method?: PayoutMethod
+  status: ClaimStatus
+  risk_level?: RiskLevel
+  risk_flags?: string[]
+  contestability_alert: boolean
+  months_since_issue?: number
+  ai_summary?: string
+  assigned_adjuster?: string
+  adjuster_notes?: string
+  created_at: string
+  updated_at?: string
+}
+
+// Draft claim state stored in ClaimContext across multi-step form
+export interface ClaimDraft {
+  policy_number?: string
+  insured_name?: string
+  insured_dob?: string
+  insured_ssn_last4?: string
+  beneficiary_name?: string
+  beneficiary_email?: string
+  beneficiary_phone?: string
+  beneficiary_relationship?: string
+  date_of_death?: string
+  cause_of_death?: string
+  manner_of_death?: MannerOfDeath
+  death_in_us?: boolean
+  payout_method?: PayoutMethod
+  bank_routing?: string
+  bank_account?: string
+  bank_account_type?: 'checking' | 'savings'
+  claim_id?: string       // set after POST /api/claims
+  claim_number?: string   // set after submit
+  current_step?: number
+}
