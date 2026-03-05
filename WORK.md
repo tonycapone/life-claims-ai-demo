@@ -48,7 +48,7 @@
 
 ---
 
-### W-005 🟡 Service worker not implemented
+### W-005 ✅ Service worker not implemented
 **Context:** Vite scaffold doesn't include a service worker. PWA install prompt and offline support won't work without one.
 **TODO:**
 - Add `vite-plugin-pwa` OR manually write `public/sw.js` with Workbox
@@ -83,7 +83,7 @@
 
 ---
 
-### W-008 🔴 API routes not built
+### W-008 ✅ API routes not built
 **Context:** `main.py` has commented-out router imports. No actual endpoints exist beyond `/api/health`.
 **TODO:** Build all routes per spec:
 - `POST   /api/claims/lookup` — find policy by number or name+dob+ssn4
@@ -102,7 +102,7 @@
 
 ---
 
-### W-009 🔴 Frontend UI not built
+### W-009 ✅ Frontend UI not built
 **Context:** Default Vite scaffold (`App.tsx` shows React logo). No actual screens built yet.
 **TODO:** Build all screens per spec:
 - Customer PWA: Landing, Policy Lookup, Beneficiary Info, Death Info, Doc Upload + AI extraction confirm, Identity Verify, Payout Prefs, Review/Submit, Confirmation + Claim Tracker, Status (returning)
@@ -111,7 +111,7 @@
 
 ---
 
-### W-010 🟡 AI document extraction not wired up
+### W-010 ✅ AI document extraction not wired up
 **Context:** Spec calls for Claude to extract fields from uploaded death certificate. Not implemented.
 **TODO:**
 - `POST /api/claims/:id/documents` route
@@ -123,7 +123,7 @@
 
 ---
 
-### W-011 🟡 AI risk scoring not wired up
+### W-011 ✅ AI risk scoring not wired up
 **Context:** On claim submission, Claude should score risk, flag contestability, return structured assessment.
 **TODO:**
 - Risk scoring function in `backend/app/ai.py`
@@ -135,7 +135,7 @@
 
 ---
 
-### W-012 🟡 AI adjuster copilot not wired up
+### W-012 ✅ AI adjuster copilot not wired up
 **Context:** Adjuster dashboard needs a streaming chat panel powered by Claude with claim context.
 **TODO:**
 - `POST /api/adjuster/chat` — Server-Sent Events (SSE) streaming endpoint
@@ -163,7 +163,7 @@
 
 ---
 
-### W-014 🟡 Docker Compose for local development
+### W-014 ✅ Docker Compose for local development
 **Context:** Need a way to spin up the full local environment (backend + postgres + frontend) without installing everything globally. Tasker uses Docker for Redis; we should do similar for Postgres.
 **TODO:**
 - Create `docker-compose.yml` at repo root:
@@ -233,7 +233,7 @@
 
 ---
 
-### W-019 🟡 No API client / axios setup
+### W-019 ✅ No API client / axios setup
 **Context:** Tasker uses a `useAxios` hook for authenticated requests. We need a similar pattern — a configured axios instance + hooks for API calls.
 **TODO:**
 - Create `frontend/src/utils/api.ts` — configured axios instance (baseURL, interceptors)
@@ -243,7 +243,7 @@
 
 ---
 
-### W-020 🟡 No global state / context
+### W-020 ✅ No global state / context
 **Context:** Claim flow spans multiple screens. Need to persist state across steps without prop drilling or redundant API calls.
 **TODO:**
 - Create `frontend/src/contexts/ClaimContext.tsx`:
@@ -256,7 +256,7 @@
 
 ---
 
-### W-021 🟡 No global styles / design system
+### W-021 ✅ No global styles / design system
 **Context:** Default Vite CSS is placeholder. Need a real design system for the app to look polished for the demo.
 **TODO:**
 - Define CSS variables: brand colors (navy #1e3a5f, accent blue, white, grays), typography scale, spacing
@@ -267,7 +267,7 @@
 
 ---
 
-### W-022 🟢 No linting / formatting configured
+### W-022 ✅ No linting / formatting configured
 **Context:** Tasker has ESLint configured. We have the default Vite ESLint config but no Prettier or consistent formatting rules.
 **TODO:**
 - Configure `.eslintrc` / `eslint.config.js` properly
@@ -288,7 +288,7 @@
 
 ---
 
-### W-024 🟢 CDK — frontend S3 bucket missing from deploy.sh
+### W-024 ✅ CDK — frontend S3 bucket missing from deploy.sh
 **Context:** `deploy.sh` grabs `DocumentsBucket` output but that's for claim documents, not the frontend. Frontend bucket has no named output yet.
 **TODO:**
 - Add `FrontendBucketName` CfnOutput to `claimpath-stack.ts`
@@ -313,7 +313,7 @@
 
 ---
 
-### W-026 🟢 scripts/ directory missing
+### W-026 ✅ scripts/ directory missing
 **Context:** Tasker has a `scripts/` dir with useful utilities: `db.sh` (prod DB access), `deploy.sh`, `logs.sh`, etc.
 **TODO:**
 - Create `scripts/` directory
