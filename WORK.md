@@ -145,7 +145,7 @@
 
 ---
 
-### W-013 🟡 Root package.json — npm run scripts not set up
+### W-013 ✅ Root package.json — npm run scripts not set up
 **Context:** Tasker has a root `package.json` with `concurrently` that lets you run `npm run dev` to spin up everything (backend + frontend + any services) in one command. We have none of that.
 **TODO:**
 - Create root `package.json` with scripts:
@@ -176,7 +176,7 @@
 
 ---
 
-### W-015 🟡 Backend unit tests not set up
+### W-015 ✅ Backend unit tests not set up
 **Context:** Tasker has a full pytest setup with conftest.py, in-memory SQLite test DB, FastAPI TestClient, and per-router test files. We have nothing.
 **TODO:**
 - Create `backend/tests/` directory
