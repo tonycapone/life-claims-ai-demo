@@ -59,7 +59,7 @@
 
 ---
 
-### W-006 🟡 Mock policy seed data not created
+### W-006 ✅ Mock policy seed data not created
 **Context:** Spec calls for 5 mock policies and pre-seeded claims for adjuster demo. Nothing seeded yet.
 **TODO:**
 - Create `backend/seed.py` script (run via `npm run db:seed`)
