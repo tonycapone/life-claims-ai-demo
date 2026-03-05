@@ -1,97 +1,123 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDocumentUpload } from '../hooks/useClaim'
 import { useClaim } from '../contexts/ClaimContext'
+import { useDocumentUpload } from '../hooks/useClaim'
 import StepIndicator from '../components/StepIndicator'
+import type { DeathCertificateExtraction } from '../types/claim'
 
 export default function DocumentUpload() {
   const navigate = useNavigate()
-  const { draft, setDraft } = useClaim()
+  const { draft } = useClaim()
   const { uploadDocument, loading, error } = useDocumentUpload()
+  const [extracted, setExtracted] = useState<DeathCertificateExtraction | null>(null)
+  const [fileName, setFileName] = useState('')
+  const [dragover, setDragover] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const [dragOver, setDragOver] = useState(false)
-  const [extracted, setExtracted] = useState<any>(null)
-
-  async function handleFile(file: File) {
+  const handleFile = async (file: File) => {
+    setFileName(file.name)
     if (!draft.claim_id) return
     const result = await uploadDocument(draft.claim_id, file)
-    if (result) setExtracted(result.extracted)
+    if (result?.extracted) setExtracted(result.extracted)
   }
 
-  function handleDrop(e: React.DragEvent) {
+  const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    setDragOver(false)
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0])
+    setDragover(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleFile(file)
   }
 
-  function handleConfirm() {
-    setDraft({ current_step: 5 })
-    navigate('/claim/verify')
-  }
+  const fields: [keyof DeathCertificateExtraction, string][] = [
+    ['deceased_name', 'Deceased Name'],
+    ['date_of_death', 'Date of Death'],
+    ['cause_of_death', 'Cause of Death'],
+    ['manner_of_death', 'Manner of Death'],
+    ['certifying_physician', 'Certifying Physician'],
+    ['jurisdiction', 'Jurisdiction'],
+    ['certificate_number', 'Certificate #'],
+  ]
 
   return (
     <div className="page">
-      <StepIndicator currentStep={4} />
       <div className="page-header">
-        <h1>Death Certificate</h1>
-        <p>Please upload the certified death certificate. We'll extract the details automatically.</p>
+        <button className="btn btn-ghost btn--sm" style={{ color: 'white', padding: '0.25rem 0.5rem' }} onClick={() => navigate(-1)}>←</button>
+        <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
       </div>
+      <StepIndicator currentStep={4} />
 
-      {!extracted ? (
-        <>
-          <div
-            className={`upload-area ${dragOver ? 'drag-over' : ''}`}
-            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
+      <div className="page-content">
+        <h2 style={{ marginBottom: '0.5rem' }}>Death Certificate</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+          Please upload a certified copy of the death certificate. Accepts PDF, JPG, or PNG (max 20MB).
+        </p>
+
+        {!extracted ? (
+          <>
+            <div
+              className={`upload-zone ${dragover ? 'dragover' : ''}`}
+              onClick={() => inputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragover(true) }}
+              onDragLeave={() => setDragover(false)}
+              onDrop={onDrop}
+            >
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+              />
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <span className="spinner spinner--lg" />
+                  <p className="text-sm text-muted">Extracting information from document...</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📄</div>
+                  <p className="font-medium" style={{ marginBottom: '0.25rem' }}>
+                    {fileName || 'Tap to upload or drag & drop'}
+                  </p>
+                  <p className="text-sm text-muted">PDF, JPG, or PNG · Max 20MB</p>
+                </>
+              )}
+            </div>
+            {error && <div className="alert alert-danger" style={{ marginTop: '1rem' }}>{error}</div>}
+          </>
+        ) : (
+          <div>
+            <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+              We extracted the following from your death certificate. Please confirm:
+            </div>
+            <div className="extraction-card" style={{ marginBottom: '1.25rem' }}>
+              {fields.map(([key, label]) => extracted[key] ? (
+                <div key={key} className="extraction-row">
+                  <span className="extraction-label">{label}</span>
+                  <span className="extraction-value">{extracted[key]} ✓</span>
+                </div>
+              ) : null)}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button className="btn btn-primary btn--full" onClick={() => navigate('/claim/verify')}>
+                This looks correct — Continue
+              </button>
+              <button className="btn btn-secondary btn--full" onClick={() => { setExtracted(null); setFileName('') }}>
+                Something looks wrong — Re-upload
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!extracted && !loading && (
+          <button
+            className="btn btn-ghost btn--full"
+            style={{ marginTop: '1rem' }}
+            onClick={() => navigate('/claim/verify')}
           >
-            <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }}
-              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-            {loading ? (
-              <div style={{ textAlign: 'center' }}>
-                <span className="spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
-                <p className="mt-12 text-muted">Uploading and extracting...</p>
-              </div>
-            ) : (
-              <>
-                <div className="upload-icon">📄</div>
-                <p style={{ fontWeight: 600, marginBottom: 4 }}>Drop your death certificate here</p>
-                <p className="text-muted" style={{ fontSize: '0.875rem' }}>or tap to browse • PDF, JPG, PNG • up to 20MB</p>
-              </>
-            )}
-          </div>
-          {error && <p className="error-msg mt-8">{error}</p>}
-        </>
-      ) : (
-        <div className="card stack stack-md">
-          <div className="alert alert-success">
-            <span>✅</span>
-            <strong>We extracted the following from your death certificate. Please confirm:</strong>
-          </div>
-          <div className="stack stack-sm">
-            {[
-              ['Name', extracted.deceased_name],
-              ['Date of Death', extracted.date_of_death],
-              ['Cause of Death', extracted.cause_of_death],
-              ['Manner of Death', extracted.manner_of_death],
-              ['Certifying Physician', extracted.certifying_physician],
-              ['Jurisdiction', extracted.jurisdiction],
-              ['Certificate #', extracted.certificate_number],
-            ].filter(([, v]) => v).map(([label, value]) => (
-              <div key={label as string} className="d-flex justify-between" style={{ fontSize: '0.9375rem', paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>
-                <span className="text-muted">{label}</span>
-                <strong style={{ textAlign: 'right', maxWidth: '60%' }}>{value as string}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="cluster">
-            <button className="btn btn-primary" onClick={handleConfirm}>This looks correct ✓</button>
-            <button className="btn btn-outline" onClick={() => setExtracted(null)}>Something looks wrong</button>
-          </div>
-        </div>
-      )}
+            Skip for now
+          </button>
+        )}
+      </div>
     </div>
   )
 }
