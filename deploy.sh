@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "🏗️  Building frontend..."
+echo "Building frontend..."
 cd frontend && npm run build && cd ..
 
-echo "☁️  Deploying CDK stack..."
+echo "Deploying CDK stack..."
 cd cdk && npx cdk deploy --require-approval never && cd ..
 
-echo "📦  Syncing frontend to S3..."
+echo "Syncing frontend to S3..."
 BUCKET=$(aws cloudformation describe-stacks \
   --stack-name ClaimPathStack \
   --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" \
@@ -15,7 +15,7 @@ BUCKET=$(aws cloudformation describe-stacks \
 
 aws s3 sync frontend/dist/ s3://$BUCKET --delete
 
-echo "🔄  Invalidating CloudFront cache..."
+echo "Invalidating CloudFront cache..."
 CF_ID=$(aws cloudformation describe-stacks \
   --stack-name ClaimPathStack \
   --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
@@ -28,4 +28,4 @@ CF_URL=$(aws cloudformation describe-stacks \
   --query "Stacks[0].Outputs[?OutputKey=='CloudFrontURL'].OutputValue" \
   --output text)
 
-echo "✅  Deployed! App available at: $CF_URL"
+echo "Deployed! App available at: $CF_URL"
