@@ -12,10 +12,11 @@ export default defineConfig({
       manifest: {
         name: 'ClaimPath',
         short_name: 'ClaimPath',
-        description: 'AI-guided death benefit claims for life carriers',
+        description: 'Life insurance death benefit claims — simple, fast, compassionate.',
         theme_color: '#1e3a5f',
         background_color: '#f8fafc',
         display: 'standalone',
+        orientation: 'portrait',
         start_url: '/',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -23,12 +24,12 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
             urlPattern: /^\/api\//,
             handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', networkTimeoutSeconds: 10 },
+            options: { cacheName: 'api-cache' },
           },
         ],
       },
