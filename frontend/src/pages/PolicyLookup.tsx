@@ -8,89 +8,105 @@ export default function PolicyLookup() {
   const navigate = useNavigate()
   const { setDraft } = useClaim()
   const { lookup, loading, error } = usePolicyLookup()
-  const [mode, setMode] = useState<'number' | 'info'>('number')
+  const [mode, setMode] = useState<'number' | 'name'>('number')
   const [policyNumber, setPolicyNumber] = useState('')
-  const [name, setName] = useState('')
-  const [dob, setDob] = useState('')
-  const [ssn4, setSsn4] = useState('')
-  const [result, setResult] = useState<any>(null)
+  const [insuredName, setInsuredName] = useState('')
+  const [insuredDob, setInsuredDob] = useState('')
+  const [ssnLast4, setSsnLast4] = useState('')
+  const [found, setFound] = useState<any>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const params = mode === 'number'
       ? { policy_number: policyNumber }
-      : { insured_name: name, insured_dob: dob, insured_ssn_last4: ssn4 }
-    const data = await lookup(params)
-    if (data) setResult(data)
+      : { insured_name: insuredName, insured_dob: insuredDob, insured_ssn_last4: ssnLast4 }
+    const result = await lookup(params)
+    if (result) setFound(result)
   }
 
-  function handleConfirm() {
+  const handleConfirm = () => {
     setDraft({
-      policy_number: result.policy_number,
-      insured_name: result.insured_name,
-      insured_dob: result.insured_dob,
+      policy_number: found.policy_number,
+      insured_name: found.insured_name_masked,
     })
     navigate('/claim/beneficiary')
   }
 
   return (
-    <div>
-      <nav className="navbar"><a href="/" className="navbar-brand">🛡️ ClaimPath</a></nav>
-      <div className="page">
-        <StepIndicator currentStep={1} />
-        <div className="page-header">
-          <h2>Find the Policy</h2>
-          <p>We'll look up the life insurance policy to get started.</p>
+    <div className="page">
+      <div className="page-header">
+        <div className="logo-mark">
+          <div className="logo-icon" style={{ width: 28, height: 28, fontSize: '0.875rem' }}>CP</div>
+          <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
         </div>
+      </div>
+      <StepIndicator currentStep={1} />
 
-        {result ? (
-          <div className="card">
-            <div className="alert alert-success mb-16">We found a policy matching your information.</div>
-            <div className="stack stack-sm">
-              <div><span className="text-muted">Insured: </span><strong>{result.insured_name_masked}</strong></div>
-              <div><span className="text-muted">Policy type: </span><strong style={{ textTransform: 'capitalize' }}>{result.policy_type?.replace('_', ' ')}</strong></div>
-              <div><span className="text-muted">Status: </span><strong style={{ textTransform: 'capitalize' }}>{result.status}</strong></div>
-            </div>
-            <p className="mt-16 mb-16 text-muted" style={{ fontSize: '0.9375rem' }}>Is this the right policy?</p>
-            <div className="cluster">
-              <button className="btn btn-primary" onClick={handleConfirm}>Yes, continue</button>
-              <button className="btn btn-outline" onClick={() => setResult(null)}>No, search again</button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="card">
-            <div className="cluster mb-16">
-              <button type="button" className={`btn btn-sm ${mode === 'number' ? 'btn-dark' : 'btn-outline'}`} onClick={() => setMode('number')}>I have the policy number</button>
-              <button type="button" className={`btn btn-sm ${mode === 'info' ? 'btn-dark' : 'btn-outline'}`} onClick={() => setMode('info')}>I don't have the policy number</button>
+      <div className="page-content">
+        <h2 style={{ marginBottom: '0.5rem' }}>Find the Policy</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+          We're sorry for your loss. Let's start by finding the policy.
+        </p>
+
+        {!found ? (
+          <form onSubmit={handleSubmit}>
+            <div className="toggle-tabs" style={{ marginBottom: '1.25rem' }}>
+              <button type="button" className={`toggle-tab ${mode === 'number' ? 'active' : ''}`} onClick={() => setMode('number')}>
+                I have the policy number
+              </button>
+              <button type="button" className={`toggle-tab ${mode === 'name' ? 'active' : ''}`} onClick={() => setMode('name')}>
+                I don't have it
+              </button>
             </div>
 
             {mode === 'number' ? (
               <div className="form-group">
-                <label>Policy Number</label>
-                <input className="input" placeholder="e.g. LT-29471" value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} required />
+                <label className="form-label required">Policy Number</label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. LT-29471"
+                  value={policyNumber}
+                  onChange={e => setPolicyNumber(e.target.value)}
+                  required
+                />
               </div>
             ) : (
               <>
                 <div className="form-group">
-                  <label>Insured's Full Name</label>
-                  <input className="input" placeholder="First and last name" value={name} onChange={e => setName(e.target.value)} required />
+                  <label className="form-label required">Insured's Full Name</label>
+                  <input className="form-input" placeholder="John Smith" value={insuredName} onChange={e => setInsuredName(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                  <label>Insured's Date of Birth</label>
-                  <input className="input" type="date" value={dob} onChange={e => setDob(e.target.value)} required />
+                  <label className="form-label required">Insured's Date of Birth</label>
+                  <input className="form-input" type="date" value={insuredDob} onChange={e => setInsuredDob(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                  <label>Last 4 of SSN (optional)</label>
-                  <input className="input" placeholder="1234" maxLength={4} value={ssn4} onChange={e => setSsn4(e.target.value)} />
+                  <label className="form-label required">Last 4 of SSN</label>
+                  <input className="form-input" placeholder="1234" maxLength={4} value={ssnLast4} onChange={e => setSsnLast4(e.target.value)} required />
                 </div>
               </>
             )}
 
-            {error && <div className="alert alert-danger mt-12">{error}</div>}
-            <button className="btn btn-primary btn-full mt-16" type="submit" disabled={loading}>
-              {loading ? <><span className="spinner" style={{ borderColor: '#fff', borderTopColor: 'transparent' }} /> Looking up…</> : 'Find Policy'}
+            {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+            <button type="submit" className="btn btn-primary btn--full" disabled={loading}>
+              {loading ? <><span className="spinner" />Looking up policy...</> : 'Find Policy'}
             </button>
           </form>
+        ) : (
+          <div>
+            <div className="card extraction-card" style={{ marginBottom: '1.25rem' }}>
+              <p className="text-sm text-muted" style={{ marginBottom: '0.75rem' }}>We found a policy for:</p>
+              <p className="font-semibold text-lg" style={{ marginBottom: '0.25rem' }}>{found.insured_name_masked}</p>
+              <p className="text-sm text-muted">{found.policy_type?.replace('_', ' ')} policy</p>
+              <p className="text-sm text-muted">Policy #{found.policy_number}</p>
+            </div>
+            <p className="text-sm" style={{ marginBottom: '1rem' }}>Is this the right policy?</p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className="btn btn-primary flex-1" onClick={handleConfirm}>Yes, continue</button>
+              <button className="btn btn-secondary flex-1" onClick={() => setFound(null)}>No, search again</button>
+            </div>
+          </div>
         )}
       </div>
     </div>

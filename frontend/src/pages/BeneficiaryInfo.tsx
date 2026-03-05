@@ -1,62 +1,81 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useUpdateClaim } from '../hooks/useClaim'
 import { useClaim } from '../contexts/ClaimContext'
+import { useCreateClaim, useUpdateClaim } from '../hooks/useClaim'
 import StepIndicator from '../components/StepIndicator'
+
+const RELATIONSHIPS = ['Spouse', 'Child', 'Parent', 'Sibling', 'Other']
 
 export default function BeneficiaryInfo() {
   const navigate = useNavigate()
   const { draft, setDraft } = useClaim()
-  const { updateClaim, loading } = useUpdateClaim()
+  const { createClaim, loading: creating } = useCreateClaim()
+  const { updateClaim, loading: updating } = useUpdateClaim()
 
-  const [name, setName] = useState(draft.beneficiary_name || '')
-  const [email, setEmail] = useState(draft.beneficiary_email || '')
-  const [phone, setPhone] = useState(draft.beneficiary_phone || '')
-  const [rel, setRel] = useState(draft.beneficiary_relationship || '')
-
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const data = { beneficiary_name: name, beneficiary_email: email, beneficiary_phone: phone, beneficiary_relationship: rel }
-    setDraft({ ...data, current_step: 3 })
-    if (draft.claim_id) await updateClaim(draft.claim_id, data)
+    if (draft.claim_id) {
+      await updateClaim(draft.claim_id, {
+        beneficiary_name: draft.beneficiary_name,
+        beneficiary_email: draft.beneficiary_email,
+        beneficiary_phone: draft.beneficiary_phone,
+        beneficiary_relationship: draft.beneficiary_relationship,
+      })
+    } else {
+      const claim = await createClaim({
+        policy_number: draft.policy_number!,
+        insured_name: draft.insured_name || '',
+        beneficiary_name: draft.beneficiary_name,
+        beneficiary_email: draft.beneficiary_email,
+        beneficiary_phone: draft.beneficiary_phone,
+        beneficiary_relationship: draft.beneficiary_relationship,
+      })
+      if (claim) {
+        setDraft({ claim_id: claim.id, claim_number: claim.claim_number })
+      }
+    }
     navigate('/claim/death-info')
   }
 
   return (
     <div className="page">
-      <StepIndicator currentStep={2} />
       <div className="page-header">
-        <h1>Your Information</h1>
-        <p>We need a few details about you — the person filing this claim.</p>
+        <button className="btn btn-ghost btn--sm" style={{ color: 'white', padding: '0.25rem 0.5rem' }} onClick={() => navigate(-1)}>←</button>
+        <div className="logo-mark">
+          <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="card stack stack-md">
-        <div className="form-group">
-          <label>Your Full Legal Name</label>
-          <input type="text" placeholder="Jane Smith" value={name} onChange={e => setName(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Email Address</label>
-          <input type="email" placeholder="jane@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Phone Number</label>
-          <input type="tel" placeholder="(555) 555-1234" value={phone} onChange={e => setPhone(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Your Relationship to the Insured</label>
-          <select value={rel} onChange={e => setRel(e.target.value)} required>
-            <option value="">Select relationship</option>
-            <option value="spouse">Spouse</option>
-            <option value="child">Child</option>
-            <option value="parent">Parent</option>
-            <option value="sibling">Sibling</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
-          {loading ? <><span className="spinner" /> Saving...</> : 'Continue'}
-        </button>
-      </form>
+      <StepIndicator currentStep={2} />
+
+      <div className="page-content">
+        <h2 style={{ marginBottom: '0.5rem' }}>Your Information</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>Tell us about yourself — the person filing this claim.</p>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label required">Your Full Legal Name</label>
+            <input className="form-input" placeholder="Jane Smith" value={draft.beneficiary_name || ''} onChange={e => setDraft({ beneficiary_name: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label required">Email Address</label>
+            <input className="form-input" type="email" placeholder="jane@email.com" value={draft.beneficiary_email || ''} onChange={e => setDraft({ beneficiary_email: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label required">Phone Number</label>
+            <input className="form-input" type="tel" placeholder="(555) 000-0000" value={draft.beneficiary_phone || ''} onChange={e => setDraft({ beneficiary_phone: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label required">Your Relationship to the Insured</label>
+            <select className="form-select" value={draft.beneficiary_relationship || ''} onChange={e => setDraft({ beneficiary_relationship: e.target.value })} required>
+              <option value="">Select relationship</option>
+              {RELATIONSHIPS.map(r => <option key={r} value={r.toLowerCase()}>{r}</option>)}
+            </select>
+          </div>
+
+          <button type="submit" className="btn btn-primary btn--full" disabled={creating || updating}>
+            {(creating || updating) ? <><span className="spinner" />Saving...</> : 'Continue'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

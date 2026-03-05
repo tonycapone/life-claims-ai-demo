@@ -1,35 +1,82 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const [installPrompt, setInstallPrompt] = useState<any>(null)
+  const [showBanner, setShowBanner] = useState(false)
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault()
+      setInstallPrompt(e)
+      setShowBanner(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = () => {
+    installPrompt?.prompt()
+    setShowBanner(false)
+  }
+
   return (
-    <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '24px 16px', background: 'var(--color-bg)' }}>
-      <div style={{ textAlign: 'center', maxWidth: 480 }}>
-        <div style={{ width: 64, height: 64, background: 'var(--color-primary)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '1.75rem' }}>
-          🛡️
+    <div className="page">
+      <div className="landing-hero">
+        <div className="logo-mark" style={{ justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <div className="logo-icon" style={{ width: 52, height: 52, fontSize: '1.375rem' }}>CP</div>
+          <span className="logo-text" style={{ color: 'white', fontSize: '1.5rem' }}>
+            Claim<span style={{ color: '#93c5fd' }}>Path</span>
+          </span>
         </div>
-        <h1 style={{ color: 'var(--color-primary)', fontSize: '2rem', marginBottom: 12 }}>ClaimPath</h1>
-        <p style={{ fontSize: '1.125rem', color: 'var(--color-muted)', marginBottom: 8 }}>We're here to help.</p>
-        <p style={{ fontSize: '0.9375rem', color: 'var(--color-muted)', marginBottom: 40, lineHeight: 1.7 }}>
-          Filing a death benefit claim is one of the hardest things you'll do.<br />
-          We've made it as simple as possible. This takes about 10 minutes.
+        <h1>We're here to help.</h1>
+        <p style={{ marginTop: '0.75rem' }}>
+          File a life insurance death benefit claim in about 10 minutes.
+          Save your progress and come back anytime.
         </p>
-        <div className="stack stack-md">
-          <button className="btn btn-primary btn-full btn-lg" onClick={() => navigate('/claim/lookup')}>
-            File a Death Benefit Claim
-          </button>
-          <button className="btn btn-outline btn-full" onClick={() => navigate('/claim/status')}>
-            Check Claim Status
-          </button>
-        </div>
-        <p className="text-muted mt-24" style={{ fontSize: '0.8125rem' }}>
-          Your progress is saved automatically. You can return at any time.
-        </p>
-        <div className="divider" style={{ margin: '32px 0' }} />
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/adjuster/login')} style={{ color: 'var(--color-muted)' }}>
-          Adjuster Portal →
-        </button>
       </div>
+
+      <div className="landing-actions">
+        <button
+          className="btn btn-primary btn--full btn--lg"
+          onClick={() => navigate('/claim/lookup')}
+        >
+          File a Death Benefit Claim
+        </button>
+        <button
+          className="btn btn-secondary btn--full btn--lg"
+          onClick={() => navigate('/claim/status')}
+        >
+          Check Claim Status
+        </button>
+
+        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <p className="text-muted text-sm">
+            Questions? Call us at{' '}
+            <a href="tel:18005246272">1-800-CLAIMPATH</a>
+          </p>
+          <p className="text-muted text-sm" style={{ marginTop: '0.25rem' }}>
+            Available Mon–Fri, 8am–8pm ET
+          </p>
+        </div>
+
+        <div className="card" style={{ marginTop: '1rem', textAlign: 'center' }}>
+          <p className="text-sm text-muted">
+            🔒 Your information is encrypted and secure. We take your privacy seriously.
+          </p>
+        </div>
+      </div>
+
+      {showBanner && (
+        <div className="install-banner">
+          <p>Add ClaimPath to your home screen for easy access.</p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary btn--sm" onClick={handleInstall}>Install</button>
+            <button className="btn btn-ghost btn--sm" style={{ color: 'rgba(255,255,255,0.7)' }} onClick={() => setShowBanner(false)}>✕</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
