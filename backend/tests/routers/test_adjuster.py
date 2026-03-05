@@ -83,8 +83,8 @@ def test_adjuster_claim_detail(client, db_session):
     res = client.get(f"/api/adjuster/claims/{claim.id}", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
     data = res.json()
-    assert "claim" in data
-    assert data["claim"]["claim_number"] == "CLM-2026-00001"
+    assert "claim_number" in data
+    assert data["claim_number"] == "CLM-2026-00001"
 
 
 def test_adjuster_claim_action(client, db_session):
