@@ -37,7 +37,7 @@
 
 ---
 
-### W-004 🟡 PWA icons missing
+### W-004 ✅ PWA icons missing
 **Context:** `manifest.json` references `/icon-192.png` and `/icon-512.png` but these files don't exist yet. PWA won't install properly without them.
 **TODO:**
 - Design or generate ClaimPath logo/icon
