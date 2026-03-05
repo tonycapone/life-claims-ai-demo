@@ -6,6 +6,11 @@ const STATUS_LABELS: Record<string, string> = {
   siu_review: 'SIU Review', approved: 'Approved', paid: 'Paid', denied: 'Denied',
 }
 
+interface Props {
+  status?: ClaimStatus | string
+  risk?: RiskLevel | string
+}
+
 export function StatusBadge({ status }: { status: ClaimStatus | string }) {
   const cssClass = status.replace(/_/g, '-')
   return <span className={`badge badge-${cssClass}`}>{STATUS_LABELS[status] || status}</span>
@@ -13,9 +18,12 @@ export function StatusBadge({ status }: { status: ClaimStatus | string }) {
 
 export function RiskBadge({ level }: { level: RiskLevel | string }) {
   const icons: Record<string, string> = { low: '🟢', medium: '🟡', high: '🔴' }
-  return (
-    <span className={`badge badge-risk-${level}`}>
-      {icons[level] || ''} {level}
-    </span>
-  )
+  return <span className={`badge badge-risk-${level}`}>{icons[level] || ''} {level}</span>
+}
+
+// Default export: combined component (used in Queue table)
+export default function StatusBadgeCombined({ status, risk }: Props) {
+  if (risk) return <RiskBadge level={risk} />
+  if (status) return <StatusBadge status={status} />
+  return null
 }

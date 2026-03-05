@@ -5,12 +5,12 @@ import { useAdjusterContext } from '../../contexts/AdjusterContext'
 
 export default function AdjusterLogin() {
   const navigate = useNavigate()
-  const { login, loading, error } = useAdjusterLogin()
   const { setAuth } = useAdjusterContext()
+  const { login, loading, error } = useAdjusterLogin()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const result = await login(username, password)
     if (result) {
@@ -20,33 +20,38 @@ export default function AdjusterLogin() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', padding: 24 }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🛡️</div>
-          <h1 style={{ marginBottom: 4 }}>ClaimPath</h1>
-          <p className="text-muted">Adjuster Portal</p>
+    <div style={{ minHeight: '100vh', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <div className="logo-icon" style={{ width: 44, height: 44, fontSize: '1.125rem' }}>CP</div>
+            <span style={{ fontSize: '1.375rem', fontWeight: 700, color: 'white' }}>
+              Claim<span style={{ color: '#93c5fd' }}>Path</span>
+            </span>
+          </div>
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Adjuster Portal</p>
         </div>
-        <form onSubmit={handleSubmit} className="card stack stack-md">
-          <h3>Sign In</h3>
-          <div className="form-group">
-            <label>Username</label>
-            <input type="text" placeholder="j.martinez" value={username}
-              onChange={e => setUsername(e.target.value)} autoFocus required />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input type="password" value={password}
-              onChange={e => setPassword(e.target.value)} required />
-          </div>
-          {error && <p className="error-msg">{error}</p>}
-          <button className="btn btn-dark btn-full" type="submit" disabled={loading}>
-            {loading ? <><span className="spinner" /> Signing in...</> : 'Sign In'}
-          </button>
-          <p className="text-muted text-center" style={{ fontSize: '0.8125rem' }}>
-            Demo credentials: j.martinez / adjuster123
+
+        <div className="card card--elevated">
+          <h2 style={{ marginBottom: '1.5rem' }}>Sign in</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label required">Username</label>
+              <input className="form-input" placeholder="j.martinez" value={username} onChange={e => setUsername(e.target.value)} required autoFocus />
+            </div>
+            <div className="form-group">
+              <label className="form-label required">Password</label>
+              <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+            </div>
+            {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+            <button type="submit" className="btn btn-primary btn--full" disabled={loading}>
+              {loading ? <><span className="spinner" />Signing in...</> : 'Sign in'}
+            </button>
+          </form>
+          <p className="text-xs text-muted text-center" style={{ marginTop: '1rem' }}>
+            Demo credentials: j.martinez / password123
           </p>
-        </form>
+        </div>
       </div>
     </div>
   )
