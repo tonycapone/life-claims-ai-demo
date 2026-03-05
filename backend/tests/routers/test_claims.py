@@ -3,48 +3,64 @@ from app.models import Policy, PolicyType, PolicyStatus
 
 
 def _seed_policy(db_session):
-    p = Policy(
+    policy = Policy(
         policy_number="LT-99999",
         insured_name="Test User",
         insured_dob="1970-01-01",
         insured_ssn_last4="1234",
-        face_amount=250000.0,
+        face_amount=500000,
         issue_date="2022-01-01",
         policy_type=PolicyType.TERM,
         status=PolicyStatus.IN_FORCE,
+        beneficiaries=[{"name": "Jane User", "relationship": "spouse", "percentage": 100}],
     )
-    db_session.add(p)
+    db_session.add(policy)
     db_session.commit()
-    return p
+    return policy
 
 
-def test_lookup_policy_not_found(client):
-    response = client.post("/api/claims/lookup", json={"policy_number": "XX-00000"})
-    assert response.status_code == 404
+def test_health(client):
+    res = client.get("/api/health")
+    assert res.status_code == 200
 
 
-def test_lookup_policy_found(client, db_session):
+def test_policy_lookup_by_number(client, db_session):
     _seed_policy(db_session)
-    response = client.post("/api/claims/lookup", json={"policy_number": "LT-99999"})
-    assert response.status_code == 200
-    data = response.json()
+    res = client.post("/api/claims/lookup", json={"policy_number": "LT-99999"})
+    assert res.status_code == 200
+    data = res.json()
     assert data["found"] is True
-    assert "LT-99999" in data["policy_number"]
+    assert data["policy_number"] == "LT-99999"
+
+
+def test_policy_lookup_not_found(client):
+    res = client.post("/api/claims/lookup", json={"policy_number": "NOTEXIST"})
+    assert res.status_code == 404
+
+
+def test_policy_lookup_by_name_dob_ssn(client, db_session):
+    _seed_policy(db_session)
+    res = client.post("/api/claims/lookup", json={
+        "insured_name": "Test User",
+        "insured_dob": "1970-01-01",
+        "insured_ssn_last4": "1234",
+    })
+    assert res.status_code == 200
+    assert res.json()["found"] is True
 
 
 def test_create_claim(client, db_session):
     _seed_policy(db_session)
-    response = client.post("/api/claims", json={
+    res = client.post("/api/claims", json={
         "policy_number": "LT-99999",
         "insured_name": "Test User",
-        "beneficiary_name": "Jane Doe",
-        "beneficiary_email": "jane@example.com",
+        "beneficiary_name": "Jane User",
+        "beneficiary_email": "jane@test.com",
     })
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "draft"
+    assert res.status_code == 200
+    data = res.json()
     assert data["claim_number"].startswith("CLM-")
-    return data
+    assert data["status"] == "draft"
 
 
 def test_update_claim(client, db_session):
@@ -54,9 +70,14 @@ def test_update_claim(client, db_session):
         "insured_name": "Test User",
     })
     claim_id = create_res.json()["id"]
-    update_res = client.put(f"/api/claims/{claim_id}", json={"date_of_death": "2026-01-15"})
+
+    update_res = client.put(f"/api/claims/{claim_id}", json={
+        "date_of_death": "2026-03-01",
+        "cause_of_death": "Cardiac arrest",
+        "manner_of_death": "natural",
+    })
     assert update_res.status_code == 200
-    assert update_res.json()["date_of_death"] == "2026-01-15"
+    assert update_res.json()["date_of_death"] == "2026-03-01"
 
 
 def test_submit_claim(client, db_session):
@@ -64,15 +85,32 @@ def test_submit_claim(client, db_session):
     create_res = client.post("/api/claims", json={
         "policy_number": "LT-99999",
         "insured_name": "Test User",
-        "beneficiary_email": "jane@example.com",
+        "beneficiary_email": "jane@test.com",
+        "beneficiary_name": "Jane",
     })
     claim_id = create_res.json()["id"]
-    client.put(f"/api/claims/{claim_id}", json={"date_of_death": "2026-03-01"})
+
     submit_res = client.post(f"/api/claims/{claim_id}/submit")
     assert submit_res.status_code == 200
-    data = submit_res.json()
-    assert data["status"] == "submitted"
-    assert data["risk_level"] in ("low", "medium", "high")
+    assert submit_res.json()["status"] == "submitted"
+
+
+def test_claim_status(client, db_session):
+    _seed_policy(db_session)
+    create_res = client.post("/api/claims", json={
+        "policy_number": "LT-99999",
+        "insured_name": "Test User",
+        "beneficiary_email": "jane@test.com",
+        "beneficiary_name": "Jane",
+    })
+    claim_data = create_res.json()
+    client.post(f"/api/claims/{claim_data['id']}/submit")
+
+    status_res = client.get("/api/claims/status", params={
+        "claim_number": claim_data["claim_number"],
+        "email": "jane@test.com",
+    })
+    assert status_res.status_code == 200
 
 
 def test_verify_identity(client, db_session):

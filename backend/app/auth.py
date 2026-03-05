@@ -8,34 +8,33 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Adjuster
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "claimpath-dev-secret-key-change-in-production")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "claimpath-dev-secret-key-change-in-prod")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-bearer_scheme = HTTPBearer(auto_error=False)
+security = HTTPBearer()
 
 
 def create_access_token(username: str) -> str:
     expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    payload = {"sub": username, "exp": expire}
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    data = {"sub": username, "exp": expire}
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def get_current_adjuster(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ) -> Adjuster:
-    if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    token = credentials.credentials
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if not username:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: Optional[str] = payload.get("sub")
+        if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     adjuster = db.query(Adjuster).filter(Adjuster.username == username).first()
-    if not adjuster:
+    if adjuster is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Adjuster not found")
     return adjuster
