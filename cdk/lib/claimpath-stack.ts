@@ -14,17 +14,23 @@ export class ClaimPathStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // ─── VPC ─────────────────────────────────────────────────────────────────
-    // 1 NAT gateway to minimize cost (default is 1 per AZ)
+    // ─── VPC — public subnets only, no NAT gateway (~$32/mo savings) ─────────
     const vpc = new ec2.Vpc(this, 'ClaimPathVPC', {
       maxAzs: 2,
-      natGateways: 1,
+      natGateways: 0,           // no NAT — everything in public subnets
+      subnetConfiguration: [
+        {
+          name: 'Public',
+          subnetType: ec2.SubnetType.PUBLIC,
+          cidrMask: 24,
+        },
+      ],
     });
 
     // ─── ECS Cluster ─────────────────────────────────────────────────────────
     const cluster = new ecs.Cluster(this, 'ClaimPathCluster', { vpc });
 
-    // ─── RDS Postgres — t3.micro (smallest billable tier) ────────────────────
+    // ─── RDS Postgres — t3.micro, single AZ, minimum storage ─────────────────
     const dbCredentials = new secretsmanager.Secret(this, 'DBCredentials', {
       generateSecretString: {
         secretStringTemplate: JSON.stringify({ username: 'postgres' }),
@@ -45,25 +51,19 @@ export class ClaimPathStack extends cdk.Stack {
       }),
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // smallest
-      allocatedStorage: 20,       // minimum
-      maxAllocatedStorage: 20,    // no autoscaling for demo
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO), // ~$13/mo
+      allocatedStorage: 20,        // minimum
+      maxAllocatedStorage: 20,     // no autoscaling
       securityGroups: [dbSecurityGroup],
       credentials: rds.Credentials.fromSecret(dbCredentials),
-      multiAz: false,             // single AZ — demo only
+      multiAz: false,              // single AZ
       publiclyAccessible: true,
       databaseName: 'claimpath',
-      backupRetention: cdk.Duration.days(1), // minimum
+      backupRetention: cdk.Duration.days(1), // minimum allowed
       deleteAutomatedBackups: true,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // clean teardown after demo
+      storageType: rds.StorageType.GP2,      // cheapest storage type
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-
-    // Allow ECS tasks → RDS
-    database.connections.allowFrom(
-      ec2.Peer.ipv4(vpc.vpcCidrBlock),
-      ec2.Port.tcp(5432),
-      'Allow from ECS tasks'
-    );
 
     // ─── S3 — claim document uploads ─────────────────────────────────────────
     const documentsBucket = new s3.Bucket(this, 'DocumentsBucket', {
@@ -105,15 +105,24 @@ export class ClaimPathStack extends cdk.Stack {
     anthropicSecret.grantRead(taskRole);
     documentsBucket.grantReadWrite(taskRole);
 
-    // ─── ECS Fargate — 256 CPU / 512MB (smallest Fargate tier) ───────────────
+    // Allow ECS tasks → RDS
+    database.connections.allowFrom(
+      ec2.Peer.ipv4(vpc.vpcCidrBlock),
+      ec2.Port.tcp(5432),
+      'Allow from ECS tasks'
+    );
+
+    // ─── ECS Fargate — 256 CPU / 512MB (minimum), public subnet, 1 task ──────
     const backendService = new ecs_patterns.ApplicationLoadBalancedFargateService(
       this,
       'ClaimPathBackend',
       {
         cluster,
-        cpu: 256,           // 0.25 vCPU — smallest
-        memoryLimitMiB: 512, // 512MB — smallest
-        desiredCount: 1,     // single task
+        cpu: 256,            // 0.25 vCPU — minimum
+        memoryLimitMiB: 512, // 512MB — minimum
+        desiredCount: 1,     // single task — no redundancy
+        assignPublicIp: true, // required since no NAT
+        taskSubnets: { subnetType: ec2.SubnetType.PUBLIC },
         taskImageOptions: {
           containerPort: 8000,
           image: ecs.ContainerImage.fromAsset('../backend', {
@@ -139,15 +148,15 @@ export class ClaimPathStack extends cdk.Stack {
       port: '8000',
     });
 
-    // ─── CloudFront — frontend + /api/* proxy to ALB ─────────────────────────
+    // ─── CloudFront — US/EU only (PRICE_CLASS_100), cheapest tier ────────────
     const oai = new cloudfront.OriginAccessIdentity(this, 'OAI');
     frontendBucket.grantRead(oai);
 
     const distribution = new cloudfront.CloudFrontWebDistribution(this, 'ClaimPathCDN', {
-      priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // US/EU only — cheapest
+      priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // US + EU only
       originConfigs: [
         {
-          // Frontend (S3)
+          // Frontend — S3
           s3OriginSource: {
             s3BucketSource: frontendBucket,
             originAccessIdentity: oai,
@@ -155,7 +164,7 @@ export class ClaimPathStack extends cdk.Stack {
           behaviors: [{ isDefaultBehavior: true }],
         },
         {
-          // Backend API (ALB)
+          // Backend API — ALB
           customOriginSource: {
             domainName: backendService.loadBalancer.loadBalancerDnsName,
             originProtocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
@@ -168,7 +177,7 @@ export class ClaimPathStack extends cdk.Stack {
                 queryString: true,
                 headers: ['Authorization', 'Content-Type'],
               },
-              defaultTtl: cdk.Duration.seconds(0), // no caching on API
+              defaultTtl: cdk.Duration.seconds(0), // no API caching
               minTtl: cdk.Duration.seconds(0),
               maxTtl: cdk.Duration.seconds(0),
             },
@@ -176,7 +185,7 @@ export class ClaimPathStack extends cdk.Stack {
         },
       ],
       errorConfigurations: [
-        // SPA routing — send all 404/403 back to index.html
+        // SPA routing
         { errorCode: 404, responseCode: 200, responsePagePath: '/index.html' },
         { errorCode: 403, responseCode: 200, responsePagePath: '/index.html' },
       ],
@@ -185,12 +194,12 @@ export class ClaimPathStack extends cdk.Stack {
     // ─── Outputs ──────────────────────────────────────────────────────────────
     new cdk.CfnOutput(this, 'CloudFrontURL', {
       value: `https://${distribution.distributionDomainName}`,
-      description: 'ClaimPath app URL (share this link)',
+      description: 'ClaimPath app URL',
     });
 
     new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
       value: distribution.distributionId,
-      description: 'CloudFront distribution ID (for cache invalidation)',
+      description: 'CloudFront distribution ID (for cache invalidation on deploy)',
     });
 
     new cdk.CfnOutput(this, 'FrontendBucketName', {
