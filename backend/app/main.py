@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from app.routers import claims, adjuster
 
 load_dotenv()
 
@@ -18,8 +19,5 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
-# Routers will be registered here as we build them
-# from app.routers import claims, adjuster, chat
-# app.include_router(claims.router, prefix="/api/claims", tags=["claims"])
-# app.include_router(adjuster.router, prefix="/api/adjuster", tags=["adjuster"])
-# app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(claims.router, prefix="/api/claims", tags=["claims"])
+app.include_router(adjuster.router, prefix="/api/adjuster", tags=["adjuster"])
