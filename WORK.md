@@ -222,7 +222,7 @@
 
 ---
 
-### W-018 🟡 No TypeScript types defined
+### W-018 ✅ No TypeScript types defined
 **Context:** Tasker has a `frontend/src/types/` directory with shared TypeScript interfaces. We have none, so components will use `any` everywhere.
 **TODO:**
 - Create `frontend/src/types/`:
