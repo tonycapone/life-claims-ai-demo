@@ -277,7 +277,7 @@
 
 ---
 
-### W-023 🟢 Auth on adjuster dashboard — JWT
+### W-023 ✅ Auth on adjuster dashboard — JWT
 **Context:** Adjuster routes are unprotected. Need at minimum simple JWT auth for the demo.
 **TODO:**
 - Hardcode 3 adjuster users in seed data (J. Martinez, R. Thompson, A. Patel)
