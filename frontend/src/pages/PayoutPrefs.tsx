@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useUpdateClaim } from '../hooks/useClaim'
 import { useClaim } from '../contexts/ClaimContext'
+import { useUpdateClaim } from '../hooks/useClaim'
 import StepIndicator from '../components/StepIndicator'
 
 export default function PayoutPrefs() {
@@ -9,85 +8,86 @@ export default function PayoutPrefs() {
   const { draft, setDraft } = useClaim()
   const { updateClaim, loading } = useUpdateClaim()
 
-  const [method, setMethod] = useState(draft.payout_method || 'lump_sum')
-  const [routing, setRouting] = useState(draft.bank_routing || '')
-  const [account, setAccount] = useState(draft.bank_account || '')
-  const [accountConfirm, setAccountConfirm] = useState('')
-  const [accountType, setAccountType] = useState(draft.bank_account_type || 'checking')
-  const [holderName, setHolderName] = useState(draft.beneficiary_name || '')
-  const [error, setError] = useState('')
-
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (account !== accountConfirm) { setError('Account numbers do not match'); return }
-    setError('')
-    const data = {
-      payout_method: method as import('../types/claim').PayoutMethod,
-      bank_routing: routing,
-      bank_account: account,
-      bank_account_type: accountType as 'checking' | 'savings',
-      current_step: 7,
+    if (draft.claim_id) {
+      await updateClaim(draft.claim_id, {
+        payout_method: draft.payout_method,
+        
+        
+      })
     }
-    setDraft(data)
-    if (draft.claim_id) await updateClaim(draft.claim_id, { payout_method: method as import('../types/claim').PayoutMethod })
     navigate('/claim/review')
   }
 
   return (
     <div className="page">
-      <StepIndicator currentStep={6} />
       <div className="page-header">
-        <h1>Payout Preferences</h1>
-        <p>How would you like to receive the death benefit?</p>
+        <button className="btn btn-ghost btn--sm" style={{ color: 'white', padding: '0.25rem 0.5rem' }} onClick={() => navigate(-1)}>←</button>
+        <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
       </div>
-      <form onSubmit={handleSubmit} className="card stack stack-md">
-        <div className="form-group">
-          <label>Payout Method</label>
-          <div className="stack stack-sm">
-            {[['lump_sum', 'Lump Sum (Recommended)', 'Full benefit paid at once'], ['structured', 'Structured Installments', 'Paid out over time — subject to carrier approval']].map(([val, label, desc]) => (
-              <label key={val} style={{ display: 'flex', gap: 12, padding: '14px 16px', border: `1.5px solid ${method === val ? 'var(--color-accent)' : 'var(--color-border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', background: method === val ? '#eff6ff' : 'white', fontWeight: 400 }}>
-                <input type="radio" value={val} checked={method === val} onChange={() => setMethod(val as any)} style={{ marginTop: 2 }} />
+      <StepIndicator currentStep={6} />
+
+      <div className="page-content">
+        <h2 style={{ marginBottom: '0.5rem' }}>Payout Preferences</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+          How would you like to receive the death benefit?
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label required">Payment Method</label>
+            <div className="radio-group">
+              <label className="radio-option">
+                <input type="radio" name="payout" value="lump_sum" checked={draft.payout_method === 'lump_sum'} onChange={() => setDraft({ payout_method: 'lump_sum' })} />
                 <div>
-                  <div style={{ fontWeight: 600 }}>{label}</div>
-                  <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{desc}</div>
+                  <span className="font-medium">Lump Sum</span>
+                  <p className="text-sm text-muted">Receive the full benefit at once (most common)</p>
                 </div>
               </label>
-            ))}
+              <label className="radio-option">
+                <input type="radio" name="payout" value="structured" checked={draft.payout_method === 'structured'} onChange={() => setDraft({ payout_method: 'structured' })} />
+                <div>
+                  <span className="font-medium">Structured Installments</span>
+                  <p className="text-sm text-muted">Subject to carrier approval</p>
+                </div>
+              </label>
+            </div>
           </div>
-        </div>
-        <div className="divider" />
-        <h4>Bank Account Information</h4>
-        <div className="alert alert-info" style={{ fontSize: '0.875rem' }}>
-          🔒 Your banking information is encrypted and only used for claim payout.
-        </div>
-        <div className="form-group">
-          <label>Account Holder Name</label>
-          <input type="text" value={holderName} onChange={e => setHolderName(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Routing Number</label>
-          <input type="text" maxLength={9} placeholder="123456789" value={routing} onChange={e => setRouting(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Account Number</label>
-          <input type="password" placeholder="Account number" value={account} onChange={e => setAccount(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Confirm Account Number</label>
-          <input type="password" placeholder="Confirm account number" value={accountConfirm} onChange={e => setAccountConfirm(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Account Type</label>
-          <select value={accountType} onChange={e => setAccountType(e.target.value as any)}>
-            <option value="checking">Checking</option>
-            <option value="savings">Savings</option>
-          </select>
-        </div>
-        {error && <p className="error-msg">{error}</p>}
-        <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
-          {loading ? <><span className="spinner" /> Saving...</> : 'Continue'}
-        </button>
-      </form>
+
+          <div className="divider" />
+          <p className="font-semibold" style={{ marginBottom: '0.75rem' }}>Bank Account Details</p>
+
+          <div className="form-group">
+            <label className="form-label required">Account Holder Name</label>
+            <input className="form-input" placeholder={draft.beneficiary_name || 'Full name'} value={draft.beneficiary_name || ''} onChange={e => setDraft({ beneficiary_name: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label required">Routing Number</label>
+            <input className="form-input" placeholder="9-digit routing number" maxLength={9} value={draft.bank_routing || ''} onChange={e => setDraft({ bank_routing: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label required">Account Number</label>
+            <input className="form-input" type="password" placeholder="Account number" value={draft.bank_account || ''} onChange={e => setDraft({ bank_account: e.target.value })} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label required">Account Type</label>
+            <select className="form-select" value={draft.bank_account_type || ''} onChange={e => setDraft({ bank_account_type: e.target.value as any })} required>
+              <option value="">Select type</option>
+              <option value="checking">Checking</option>
+              <option value="savings">Savings</option>
+            </select>
+          </div>
+
+          <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+            🔒 Your banking information is encrypted and only used for claim payout.
+          </div>
+
+          <button type="submit" className="btn btn-primary btn--full" disabled={loading}>
+            {loading ? <><span className="spinner" />Saving...</> : 'Continue'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

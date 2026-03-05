@@ -1,94 +1,103 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useClaimStatus } from '../hooks/useClaim'
 import { StatusBadge } from '../components/StatusBadge'
 import type { Claim } from '../types/claim'
 
-const STATUS_STEPS: Record<string, number> = {
-  draft: 0, submitted: 1, under_review: 2, pending_documents: 2,
-  contestability_review: 2, siu_review: 2, approved: 3, paid: 4, denied: 3,
+const TRACKER_STEPS = ['Submitted', 'Under Review', 'Decision', 'Payout']
+
+function statusToStep(status: Claim['status']): number {
+  if (status === 'draft') return 0
+  if (status === 'submitted') return 1
+  if (['under_review', 'pending_documents', 'contestability_review', 'siu_review'].includes(status)) return 2
+  if (status === 'approved' || status === 'denied') return 3
+  if (status === 'paid') return 4
+  return 1
 }
 
 export default function ClaimStatus() {
+  const navigate = useNavigate()
   const { getStatus, loading, error } = useClaimStatus()
   const [claimNumber, setClaimNumber] = useState('')
   const [email, setEmail] = useState('')
   const [claim, setClaim] = useState<Claim | null>(null)
 
-  async function handleSearch(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const result = await getStatus(claimNumber, email)
     if (result) setClaim(result)
   }
 
-  const currentStep = claim ? STATUS_STEPS[claim.status] ?? 1 : 0
-  const steps = ['Claim Received', 'Under Review', 'Decision', 'Payout']
+  const currentStep = claim ? statusToStep(claim.status) : 0
 
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Check Claim Status</h1>
-        <p>Enter your claim number and email to see the latest status.</p>
+        <button className="btn btn-ghost btn--sm" style={{ color: 'white', padding: '0.25rem 0.5rem' }} onClick={() => navigate('/')}>←</button>
+        <span className="logo-text" style={{ color: 'white', fontSize: '1rem' }}>ClaimPath</span>
       </div>
 
-      <form onSubmit={handleSearch} className="card mb-16 stack stack-sm">
-        <div className="form-group">
-          <label>Claim Number</label>
-          <input type="text" placeholder="CLM-2026-00001" value={claimNumber}
-            onChange={e => setClaimNumber(e.target.value)} required />
-        </div>
-        <div className="form-group">
-          <label>Your Email Address</label>
-          <input type="email" placeholder="you@example.com" value={email}
-            onChange={e => setEmail(e.target.value)} required />
-        </div>
-        {error && <p className="error-msg">{error}</p>}
-        <button className="btn btn-primary btn-full" type="submit" disabled={loading}>
-          {loading ? <><span className="spinner" /> Looking up...</> : 'Check Status'}
-        </button>
-      </form>
+      <div className="page-content">
+        <h2 style={{ marginBottom: '0.5rem' }}>Check Claim Status</h2>
+        <p className="text-muted text-sm" style={{ marginBottom: '1.5rem' }}>
+          Enter your claim number and email to see your claim status.
+        </p>
 
-      {claim && (
-        <div className="card stack stack-md">
-          <div className="d-flex justify-between align-center">
-            <div>
-              <p className="text-muted" style={{ fontSize: '0.875rem' }}>Claim Number</p>
-              <h3>{claim.claim_number}</h3>
+        {!claim ? (
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label required">Claim Number</label>
+              <input className="form-input" placeholder="CLM-2026-00001" value={claimNumber} onChange={e => setClaimNumber(e.target.value)} required />
             </div>
-            <StatusBadge status={claim.status} />
+            <div className="form-group">
+              <label className="form-label required">Email Address</label>
+              <input className="form-input" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
+            </div>
+            {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+            <button type="submit" className="btn btn-primary btn--full" disabled={loading}>
+              {loading ? <><span className="spinner" />Looking up...</> : 'Check Status'}
+            </button>
+          </form>
+        ) : (
+          <div>
+            <div className="card" style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span className="font-semibold">{claim.claim_number}</span>
+                <StatusBadge status={claim.status} />
+              </div>
+              <p className="text-sm text-muted">Insured: {claim.insured_name}</p>
+              {claim.date_of_death && <p className="text-sm text-muted">Date of death: {claim.date_of_death}</p>}
+            </div>
+
+            <div className="card" style={{ marginBottom: '1.25rem' }}>
+              <p className="card-title">Claim Progress</p>
+              <div className="claim-tracker">
+                {TRACKER_STEPS.map((label, i) => {
+                  const step = i + 1
+                  const isComplete = step < currentStep
+                  const isActive = step === currentStep
+                  return (
+                    <div key={label} className={`tracker-step ${isComplete ? 'tracker-step--complete' : ''}`}>
+                      <div className={`tracker-icon ${isComplete ? 'tracker-icon--complete' : isActive ? 'tracker-icon--active' : ''}`}>
+                        {isComplete ? <span style={{ color: 'white' }}>✓</span>
+                         : isActive ? <span style={{ color: 'white' }}>⏳</span>
+                         : <span style={{ color: 'var(--color-muted)' }}>{step}</span>}
+                      </div>
+                      <div className="tracker-text">
+                        <h4>{label}</h4>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <button className="btn btn-secondary btn--full" onClick={() => setClaim(null)}>
+              Check another claim
+            </button>
           </div>
-          <div className="divider" style={{ margin: '4px 0' }} />
-          <div className="timeline">
-            {steps.map((s, i) => {
-              const isComplete = i < currentStep
-              const isCurrent = i === currentStep
-              return (
-                <div key={s} className="timeline-item">
-                  <div className={`timeline-dot timeline-dot-${isComplete ? 'complete' : isCurrent ? 'current' : 'pending'}`}>
-                    {isComplete ? '✓' : i + 1}
-                  </div>
-                  <div className="timeline-content">
-                    <h4 style={{ color: isCurrent ? 'var(--color-accent)' : undefined }}>{s}</h4>
-                    {isCurrent && <p>Currently in progress</p>}
-                    {isComplete && <p>Completed</p>}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          {claim.status === 'pending_documents' && (
-            <div className="alert alert-warning">
-              <span>⚠️</span>
-              <div><strong>Action Required:</strong> Additional documents have been requested. Please upload them to continue.</div>
-            </div>
-          )}
-          {claim.ai_summary && (
-            <div className="alert alert-info">
-              <span>ℹ️</span>
-              <div>{claim.ai_summary}</div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
