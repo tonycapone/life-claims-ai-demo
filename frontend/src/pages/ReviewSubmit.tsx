@@ -7,13 +7,13 @@ import StepIndicator from '../components/StepIndicator'
 export default function ReviewSubmit() {
   const navigate = useNavigate()
   const { draft, setDraft } = useClaim()
-  const { submitClaim, loading, error } = useSubmitClaim()
+  const { submit, loading, error } = useSubmitClaim()
   const [agreed, setAgreed] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!draft.claim_id) return
-    const result = await submitClaim(draft.claim_id)
+    const result = await submit(draft.claim_id)
     if (result) {
       setDraft({ claim_number: result.claim_number })
       navigate('/claim/confirmation')

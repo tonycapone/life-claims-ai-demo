@@ -8,20 +8,20 @@ const RELATIONSHIPS = ['Spouse', 'Child', 'Parent', 'Sibling', 'Other']
 export default function BeneficiaryInfo() {
   const navigate = useNavigate()
   const { draft, setDraft } = useClaim()
-  const { createClaim, loading: creating } = useCreateClaim()
-  const { updateClaim, loading: updating } = useUpdateClaim()
+  const { create, loading: creating } = useCreateClaim()
+  const { update, loading: updating } = useUpdateClaim()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (draft.claim_id) {
-      await updateClaim(draft.claim_id, {
+      await update(draft.claim_id, {
         beneficiary_name: draft.beneficiary_name,
         beneficiary_email: draft.beneficiary_email,
         beneficiary_phone: draft.beneficiary_phone,
         beneficiary_relationship: draft.beneficiary_relationship,
       })
     } else {
-      const claim = await createClaim({
+      const claim = await create({
         policy_number: draft.policy_number!,
         insured_name: draft.insured_name || '',
         beneficiary_name: draft.beneficiary_name,

@@ -18,7 +18,7 @@ const ACTIONS = [
 ]
 
 export default function ActionModal({ claimId, onClose, onSuccess }: Props) {
-  const { takeAction, loading, error } = useClaimAction()
+  const { act, loading, error } = useClaimAction()
   const [action, setAction] = useState('')
   const [notes, setNotes] = useState('')
   const [docType, setDocType] = useState('')
@@ -26,7 +26,7 @@ export default function ActionModal({ claimId, onClose, onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!action) return
-    const result = await takeAction(claimId, {
+    const result = await act(claimId, {
       action: action as any,
       notes: notes || undefined,
       document_type: docType || undefined,
