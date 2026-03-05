@@ -1,149 +1,86 @@
 import { useState } from 'react'
 import api from '../utils/api'
 import type { Claim, ClaimDraft } from '../types/claim'
+import type { PolicyLookupResult } from '../types/policy'
 
 export function usePolicyLookup() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function lookup(params: { policy_number?: string; insured_name?: string; insured_dob?: string; insured_ssn_last4?: string }) {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await api.post('/claims/lookup', params)
-      return res.data
-    } catch (e: any) {
-      const msg = e.response?.data?.detail || 'Policy not found'
-      setError(msg)
-      return null
-    } finally {
-      setLoading(false)
-    }
+  const lookup = async (p: { policy_number?: string; insured_name?: string; insured_dob?: string; insured_ssn_last4?: string }): Promise<PolicyLookupResult | null> => {
+    setLoading(true); setError(null)
+    try { const { data } = await api.post('/claims/lookup', p); return data }
+    catch (e: any) { setError(e.response?.data?.detail || 'Policy not found'); return null }
+    finally { setLoading(false) }
   }
-
   return { lookup, loading, error }
 }
 
 export function useCreateClaim() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function createClaim(draft: Partial<ClaimDraft>): Promise<Claim | null> {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await api.post('/claims', draft)
-      return res.data
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Failed to create claim')
-      return null
-    } finally {
-      setLoading(false)
-    }
+  const create = async (draft: Partial<ClaimDraft>): Promise<Claim | null> => {
+    setLoading(true); setError(null)
+    try { const { data } = await api.post('/claims', draft); return data }
+    catch (e: any) { setError(e.response?.data?.detail || 'Failed'); return null }
+    finally { setLoading(false) }
   }
-
-  return { createClaim, loading, error }
+  return { create, loading, error }
 }
 
 export function useUpdateClaim() {
   const [loading, setLoading] = useState(false)
-
-  async function updateClaim(id: string, data: Partial<ClaimDraft>): Promise<Claim | null> {
+  const update = async (id: string, patch: Partial<ClaimDraft>): Promise<Claim | null> => {
     setLoading(true)
-    try {
-      const res = await api.put(`/claims/${id}`, data)
-      return res.data
-    } catch {
-      return null
-    } finally {
-      setLoading(false)
-    }
+    try { const { data } = await api.put(`/claims/${id}`, patch); return data }
+    catch { return null } finally { setLoading(false) }
   }
-
-  return { updateClaim, loading }
+  return { update, loading }
 }
 
 export function useSubmitClaim() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function submitClaim(id: string): Promise<Claim | null> {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await api.post(`/claims/${id}/submit`)
-      return res.data
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Failed to submit claim')
-      return null
-    } finally {
-      setLoading(false)
-    }
+  const submit = async (claimId: string): Promise<Claim | null> => {
+    setLoading(true); setError(null)
+    try { const { data } = await api.post(`/claims/${claimId}/submit`); return data }
+    catch (e: any) { setError(e.response?.data?.detail || 'Failed'); return null }
+    finally { setLoading(false) }
   }
-
-  return { submitClaim, loading, error }
+  return { submit, loading, error }
 }
 
 export function useClaimStatus() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function getStatus(claimNumber: string, email: string): Promise<Claim | null> {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await api.get('/claims/status', { params: { claim_number: claimNumber, email } })
-      return res.data
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Claim not found')
-      return null
-    } finally {
-      setLoading(false)
-    }
+  const check = async (claimNumber: string, email: string): Promise<Claim | null> => {
+    setLoading(true); setError(null)
+    try { const { data } = await api.get('/claims/status', { params: { claim_number: claimNumber, email } }); return data }
+    catch (e: any) { setError(e.response?.data?.detail || 'Not found'); return null }
+    finally { setLoading(false) }
   }
-
-  return { getStatus, loading, error }
+  return { check, loading, error }
 }
 
-export function useDocumentUpload() {
+export function useUploadDocument() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  async function uploadDocument(claimId: string, file: File) {
-    setLoading(true)
-    setError(null)
+  const upload = async (claimId: string, file: File): Promise<any> => {
+    setLoading(true); setError(null)
     try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await api.post(`/claims/${claimId}/documents`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      return res.data
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Upload failed')
-      return null
-    } finally {
-      setLoading(false)
-    }
+      const form = new FormData(); form.append('file', file)
+      const { data } = await api.post(`/claims/${claimId}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+      return data
+    } catch (e: any) { setError('Upload failed'); return null } finally { setLoading(false) }
   }
-
-  return { uploadDocument, loading, error }
+  return { upload, loading, error }
 }
 
-export function useIdentityVerify() {
+export function useVerifyIdentity() {
   const [loading, setLoading] = useState(false)
-
-  async function verify(claimId: string) {
+  const verify = async (claimId: string): Promise<boolean> => {
     setLoading(true)
-    try {
-      const res = await api.post(`/claims/${claimId}/verify`)
-      return res.data
-    } catch {
-      return null
-    } finally {
-      setLoading(false)
-    }
+    try { await api.post(`/claims/${claimId}/verify`); return true }
+    catch { return false } finally { setLoading(false) }
   }
-
   return { verify, loading }
 }
