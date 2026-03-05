@@ -70,7 +70,7 @@
 
 ---
 
-### W-007 🔴 Policy model missing
+### W-007 ✅ Policy model missing
 **Context:** `models.py` only has `Claim`. Need a `Policy` table to look up against during FNOL.
 **TODO:**
 - Add `Policy` SQLAlchemy model:
