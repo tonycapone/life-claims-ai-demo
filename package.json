@@ -1,0 +1,21 @@
+{
+  "name": "life-claims-ai-demo",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c red,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && .venv/bin/python run.py",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd frontend && npm install",
+    "db:migrate": "cd backend && .venv/bin/alembic upgrade head",
+    "db:seed": "cd backend && .venv/bin/python seed.py",
+    "test": "cd backend && .venv/bin/python -m pytest --disable-warnings -v tests/",
+    "test:unit": "cd frontend && npx vitest run",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "lint": "cd frontend && npm run lint",
+    "deploy": "bash deploy.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
