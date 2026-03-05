@@ -9,9 +9,9 @@ import PayoutPrefs from './pages/PayoutPrefs'
 import ReviewSubmit from './pages/ReviewSubmit'
 import Confirmation from './pages/Confirmation'
 import ClaimStatus from './pages/ClaimStatus'
-import AdjusterLogin from './pages/adjuster/Login'
-import AdjusterQueue from './pages/adjuster/Queue'
-import ClaimDetail from './pages/adjuster/ClaimDetail'
+import AdjusterLogin from './pages/adjuster/AdjusterLogin'
+import AdjusterQueue from './pages/adjuster/AdjusterQueue'
+import AdjusterClaimDetail from './pages/adjuster/AdjusterClaimDetail'
 
 export default function AppRoutes() {
   return (
@@ -30,7 +30,7 @@ export default function AppRoutes() {
         <Route path="/adjuster" element={<Navigate to="/adjuster/login" replace />} />
         <Route path="/adjuster/login" element={<AdjusterLogin />} />
         <Route path="/adjuster/queue" element={<AdjusterQueue />} />
-        <Route path="/adjuster/claims/:id" element={<ClaimDetail />} />
+        <Route path="/adjuster/claims/:id" element={<AdjusterClaimDetail />} />
       </Routes>
     </BrowserRouter>
   )

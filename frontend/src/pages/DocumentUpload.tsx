@@ -1,14 +1,14 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClaim } from '../contexts/ClaimContext'
-import { useDocumentUpload } from '../hooks/useClaim'
+import { useUploadDocument } from '../hooks/useClaim'
 import StepIndicator from '../components/StepIndicator'
 import type { DeathCertificateExtraction } from '../types/claim'
 
 export default function DocumentUpload() {
   const navigate = useNavigate()
   const { draft } = useClaim()
-  const { uploadDocument, loading, error } = useDocumentUpload()
+  const { upload, loading, error } = useUploadDocument()
   const [extracted, setExtracted] = useState<DeathCertificateExtraction | null>(null)
   const [fileName, setFileName] = useState('')
   const [dragover, setDragover] = useState(false)
@@ -17,7 +17,7 @@ export default function DocumentUpload() {
   const handleFile = async (file: File) => {
     setFileName(file.name)
     if (!draft.claim_id) return
-    const result = await uploadDocument(draft.claim_id, file)
+    const result = await upload(draft.claim_id, file)
     if (result?.extracted) setExtracted(result.extracted)
   }
 

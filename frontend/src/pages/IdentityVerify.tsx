@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClaim } from '../contexts/ClaimContext'
-import { useIdentityVerify } from '../hooks/useClaim'
+import { useVerifyIdentity } from '../hooks/useClaim'
 import StepIndicator from '../components/StepIndicator'
 
 type Step = 'id' | 'selfie' | 'verifying' | 'done'
@@ -9,7 +9,7 @@ type Step = 'id' | 'selfie' | 'verifying' | 'done'
 export default function IdentityVerify() {
   const navigate = useNavigate()
   const { draft } = useClaim()
-  const { verify } = useIdentityVerify()
+  const { verify } = useVerifyIdentity()
   const [step, setStep] = useState<Step>('id')
   const [idUploaded, setIdUploaded] = useState(false)
 

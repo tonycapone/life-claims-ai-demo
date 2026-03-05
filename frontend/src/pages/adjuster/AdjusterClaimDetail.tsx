@@ -102,7 +102,13 @@ export default function AdjusterClaimDetail() {
 
           {/* Right column: risk + copilot */}
           <div>
-            <RiskCard claim={claim} />
+            <RiskCard
+              riskLevel={claim.risk_level}
+              contestabilityAlert={claim.contestability_alert}
+              monthsSinceIssue={claim.months_since_issue}
+              flags={claim.risk_flags}
+              summary={claim.ai_summary}
+            />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <CopilotPanel claimId={claim.id} initialSummary={claim.ai_summary} />
             </div>
@@ -110,7 +116,7 @@ export default function AdjusterClaimDetail() {
         </div>
       </div>
 
-      {showAction && <ActionModal claim={claim} onClose={() => setShowAction(false)} onDone={handleActionDone} />}
+      {showAction && <ActionModal claimId={claim.id} onClose={() => setShowAction(false)} onSuccess={handleActionDone} />}
     </div>
   )
 }

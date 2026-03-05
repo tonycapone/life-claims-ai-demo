@@ -6,12 +6,12 @@ import StepIndicator from '../components/StepIndicator'
 export default function DeathInfo() {
   const navigate = useNavigate()
   const { draft, setDraft } = useClaim()
-  const { updateClaim, loading } = useUpdateClaim()
+  const { update, loading } = useUpdateClaim()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (draft.claim_id) {
-      await updateClaim(draft.claim_id, {
+      await update(draft.claim_id, {
         date_of_death: draft.date_of_death,
         cause_of_death: draft.cause_of_death,
         manner_of_death: draft.manner_of_death,

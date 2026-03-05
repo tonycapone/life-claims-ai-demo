@@ -6,12 +6,12 @@ import StepIndicator from '../components/StepIndicator'
 export default function PayoutPrefs() {
   const navigate = useNavigate()
   const { draft, setDraft } = useClaim()
-  const { updateClaim, loading } = useUpdateClaim()
+  const { update, loading } = useUpdateClaim()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (draft.claim_id) {
-      await updateClaim(draft.claim_id, {
+      await update(draft.claim_id, {
         payout_method: draft.payout_method,
         
         

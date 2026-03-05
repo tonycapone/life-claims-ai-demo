@@ -105,7 +105,7 @@ export default function AdjusterQueue() {
                     <td style={{ padding: '0.75rem 0.5rem' }}>{c.insured_name}</td>
                     <td style={{ padding: '0.75rem 0.5rem' }}>${c.face_amount?.toLocaleString()}</td>
                     <td style={{ padding: '0.75rem 0.5rem' }}><StatusBadge status={c.status} /></td>
-                    <td style={{ padding: '0.75rem 0.5rem' }}><RiskBadge risk={c.risk_level} /></td>
+                    <td style={{ padding: '0.75rem 0.5rem' }}>{c.risk_level && <RiskBadge level={c.risk_level} />}</td>
                     <td style={{ padding: '0.75rem 0.5rem' }}>{c.days_open}</td>
                   </tr>
                 ))}

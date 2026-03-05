@@ -17,14 +17,14 @@ function statusToStep(status: Claim['status']): number {
 
 export default function ClaimStatus() {
   const navigate = useNavigate()
-  const { getStatus, loading, error } = useClaimStatus()
+  const { check, loading, error } = useClaimStatus()
   const [claimNumber, setClaimNumber] = useState('')
   const [email, setEmail] = useState('')
   const [claim, setClaim] = useState<Claim | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const result = await getStatus(claimNumber, email)
+    const result = await check(claimNumber, email)
     if (result) setClaim(result)
   }
 
