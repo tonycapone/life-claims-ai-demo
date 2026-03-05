@@ -38,6 +38,9 @@ export interface Claim {
   claim_number: string
   policy_number: string
   insured_name: string
+  insured_dob?: string
+  policy_issue_date?: string
+  face_amount?: number
   beneficiary_name?: string
   beneficiary_email?: string
   beneficiary_phone?: string
@@ -46,6 +49,7 @@ export interface Claim {
   date_of_death?: string
   cause_of_death?: string
   manner_of_death?: string
+  death_certificate_extracted?: Record<string, string> | null
   payout_method?: PayoutMethod
   status: ClaimStatus
   risk_level?: RiskLevel
@@ -77,7 +81,7 @@ export interface ClaimDraft {
   bank_routing?: string
   bank_account?: string
   bank_account_type?: 'checking' | 'savings'
-  claim_id?: string       // set after POST /api/claims
-  claim_number?: string   // set after submit
+  claim_id?: string
+  claim_number?: string
   current_step?: number
 }
