@@ -40,7 +40,7 @@ export default function Landing() {
       <div className="landing-actions">
         <button
           className="btn btn-primary btn--full btn--lg"
-          onClick={() => navigate('/claim/lookup')}
+          onClick={() => navigate('/claim/chat')}
         >
           File a Death Benefit Claim
         </button>

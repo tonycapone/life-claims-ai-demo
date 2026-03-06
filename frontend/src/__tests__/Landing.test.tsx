@@ -34,10 +34,10 @@ describe('Landing', () => {
     expect(screen.getByText('Check Claim Status')).toBeInTheDocument()
   })
 
-  it('navigates to /claim/lookup when File Claim is clicked', async () => {
+  it('navigates to /claim/chat when File Claim is clicked', async () => {
     renderLanding()
     await userEvent.click(screen.getByText('File a Death Benefit Claim'))
-    expect(mockNavigate).toHaveBeenCalledWith('/claim/lookup')
+    expect(mockNavigate).toHaveBeenCalledWith('/claim/chat')
   })
 
   it('navigates to /claim/status when Check Status is clicked', async () => {

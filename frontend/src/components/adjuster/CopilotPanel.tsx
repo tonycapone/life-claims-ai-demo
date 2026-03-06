@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import Markdown from 'react-markdown'
 import type { ChatMessage } from '../../types/adjuster'
 
 
@@ -48,18 +49,34 @@ export default function CopilotPanel({ claimId, initialSummary }: Props) {
       const decoder = new TextDecoder()
       if (!reader) return
 
+      let buffer = ''
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const chunk = decoder.decode(value)
-        setMessages(prev => {
-          const updated = [...prev]
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            content: updated[updated.length - 1].content + chunk,
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const payload = line.slice(6).trim()
+          if (payload === '[DONE]') continue
+
+          try {
+            const event = JSON.parse(payload)
+            if (event.text) {
+              setMessages(prev => {
+                const updated = [...prev]
+                const last = updated[updated.length - 1]
+                updated[updated.length - 1] = { ...last, content: last.content + event.text }
+                return updated
+              })
+            }
+          } catch {
+            // skip malformed events
           }
-          return updated
-        })
+        }
       }
     } catch (e) {
       console.error('Chat error:', e)
@@ -108,7 +125,9 @@ export default function CopilotPanel({ claimId, initialSummary }: Props) {
       <div className="chat-messages" style={{ flex: 1 }}>
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message chat-message--${msg.role}`}>
-            <div className="chat-bubble">{msg.content}</div>
+            <div className="chat-bubble markdown-body">
+              <Markdown>{msg.content}</Markdown>
+            </div>
           </div>
         ))}
         {streaming && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
@@ -121,18 +140,19 @@ export default function CopilotPanel({ claimId, initialSummary }: Props) {
         <div ref={endRef} />
       </div>
 
-      <div className="chat-input-row">
+      <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
         <textarea
-          className="chat-input"
+          className="form-textarea"
           placeholder="Ask anything about this claim…"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          rows={1}
+          rows={3}
           disabled={streaming}
+          style={{ marginBottom: '0.5rem', minHeight: '72px' }}
         />
         <button
-          className="btn btn-primary btn--sm"
+          className="btn btn-primary btn--sm btn--full"
           onClick={() => sendMessage(input)}
           disabled={!input.trim() || streaming}
         >

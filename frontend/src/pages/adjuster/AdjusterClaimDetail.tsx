@@ -5,6 +5,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import RiskCard from '../../components/adjuster/RiskCard'
 import CopilotPanel from '../../components/adjuster/CopilotPanel'
 import ActionModal from '../../components/adjuster/ActionModal'
+import { useAdjusterAuth } from '../../contexts/AdjusterContext'
 import type { Claim } from '../../types/claim'
 import type { CommunicationDraft } from '../../types/adjuster'
 
@@ -14,6 +15,7 @@ export default function AdjusterClaimDetail() {
   const { claim, fetchClaim, loading } = useClaimDetail()
   const { draft: draftComm, loading: draftLoading } = useDraftCommunication()
 
+  const { adjuster } = useAdjusterAuth()
   const [showAction, setShowAction] = useState(false)
   const [commDraft, setCommDraft] = useState<CommunicationDraft | null>(null)
 
@@ -26,7 +28,11 @@ export default function AdjusterClaimDetail() {
   const handleDraftComm = async (type: string) => {
     if (!id) return
     const result = await draftComm(id, type)
-    if (result) setCommDraft(result)
+    if (result) {
+      const name = adjuster?.full_name || 'Claims Department'
+      const body = result.body.replace(/Claims Department\s*$/m, name + '\nClaims Department')
+      setCommDraft({ ...result, body })
+    }
   }
 
   if (loading || !claim) {
@@ -93,8 +99,18 @@ export default function AdjusterClaimDetail() {
               </div>
               {commDraft && (
                 <div style={{ background: 'var(--color-bg)', padding: '1rem', borderRadius: 'var(--radius-sm)', marginTop: '0.75rem' }}>
-                  <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{commDraft.subject}</div>
-                  <div style={{ fontSize: '0.875rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{commDraft.body}</div>
+                  <input
+                    className="form-input"
+                    value={commDraft.subject}
+                    onChange={e => setCommDraft({ ...commDraft, subject: e.target.value })}
+                    style={{ fontWeight: 600, marginBottom: '0.5rem' }}
+                  />
+                  <textarea
+                    className="form-textarea"
+                    value={commDraft.body}
+                    onChange={e => setCommDraft({ ...commDraft, body: e.target.value })}
+                    style={{ fontSize: '0.875rem', lineHeight: 1.6, minHeight: '280px' }}
+                  />
                 </div>
               )}
             </Section>
@@ -110,7 +126,7 @@ export default function AdjusterClaimDetail() {
               summary={claim.ai_summary}
             />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <CopilotPanel claimId={claim.id} initialSummary={claim.ai_summary} />
+              <CopilotPanel claimId={claim.id} />
             </div>
           </div>
         </div>

@@ -313,6 +313,95 @@
 
 ---
 
+### W-027 🟡 Deploy FNOL chat to claimpath.click
+**Context:** Conversational FNOL chat is built locally (backend AI functions, SSE endpoint, FNOLChat.tsx page). Needs to be deployed to claimpath.click so it's live.
+**TODO:**
+- Build frontend (`npm run build`) and deploy to S3/CloudFront
+- Deploy backend (ECS Fargate) with updated `ai.py` and `claims.py`
+- Verify Bedrock access from ECS task role (Claude Haiku model)
+- Smoke test: file a claim via chat on claimpath.click
+- Confirm claim appears in adjuster queue
+
+---
+
+### W-028 🟡 Migrate AI layer to Strands Agents SDK + AgentCore Runtime
+**Context:** Currently using raw boto3 `converse()` / `converse_stream()` calls in `backend/app/ai.py`. Should migrate to [Strands Agents SDK](https://github.com/strands-agents/sdk-python) for agent orchestration and deploy agents via AWS AgentCore Runtime for managed hosting, auth, sessions, and observability.
+**TODO:**
+- Install `strands-agents` and `strands-agents-builder` packages
+- Refactor FNOL chat agent: define tools (policy lookup, field extraction, claim creation) as Strands tools
+- Refactor adjuster copilot agent: claim context tools, draft generation, risk explanation
+- Define agent configs (model, system prompt, tools) as Strands Agent instances
+- Deploy agents to AgentCore Runtime (`agentcore create-agent`)
+- Update backend endpoints to invoke agents via AgentCore Runtime API instead of direct Bedrock calls
+- Keep mock fallbacks for local dev without AgentCore access
+
+---
+
+### W-029 🟡 Finalize demo script
+**Context:** Draft demo script at `docs/demo-script.md`. Covers dual thesis (AI as product + AI as developer), live FNOL chat walkthrough, adjuster dashboard, PWA/Capacitor story, and the AI-forward development process. ~5 minutes.
+**TODO:**
+- Tony reviews and adjusts emphasis/talking points
+- Rehearse with live claimpath.click to confirm timing
+- Decide whether to show adjuster copilot live or just flash it
+- Add speaker notes for transitions if presenting with slides
+
+---
+
+### W-030 🟢 SSN last 4 verification in FNOL chat
+**Context:** After policy lookup, ask beneficiary to confirm last 4 of the insured's SSN. We already store `insured_ssn_last4` on the Policy model. Shows an inline verified/failed card.
+**TODO:**
+- Backend: after policy found, send `action: verify_ssn4` event
+- Frontend: render inline input card (4-digit masked field + Verify button)
+- Backend: validate against policy record, return verified/failed event
+- Frontend: green checkmark card on success, retry prompt on failure
+
+---
+
+### W-031 🟢 Inline relationship picker widget
+**Context:** Instead of parsing "I'm his wife" from free text, show a horizontal button group (Spouse / Child / Parent / Sibling / Other) inline in the chat after beneficiary name is collected.
+**TODO:**
+- Backend: send `action: pick_relationship` event when beneficiary_name collected but relationship missing
+- Frontend: render button group inline, on tap send as user message and set draft field directly
+
+---
+
+### W-032 🟢 Inline manner of death picker widget
+**Context:** Sensitive field — easier to tap than type. Show Natural / Accident / Undetermined as inline buttons.
+**TODO:**
+- Backend: send `action: pick_manner` event when date/cause collected but manner missing
+- Frontend: render button group, same pattern as relationship picker
+
+---
+
+### W-033 🟢 Inline payout selector widget
+**Context:** Show a card with the policy face amount and two options (Lump Sum / Structured Payments) with brief descriptions. More visual than typing.
+**TODO:**
+- Backend: send `action: pick_payout` event with face_amount in data
+- Frontend: card showing "$500,000 Death Benefit" with two tappable option cards
+- On select, send as user message and set draft field
+
+---
+
+### W-034 🟢 Inline date picker for date of death
+**Context:** Date parsing from free text works but a native date input is more reliable and mobile-friendly.
+**TODO:**
+- Backend: send `action: pick_date_of_death` event when ready for death info
+- Frontend: render inline card with native date input + Confirm button
+- Set draft field directly on confirm
+
+---
+
+### W-035 🟡 RAG: Ground AI copilot in carrier claims handling manual
+**Context:** The adjuster copilot currently reasons from Claude's general knowledge. In production, it should be grounded in the carrier's actual claims handling manual — contestability checklists, escalation procedures, documentation requirements, etc. Industry standards come from LOMA, ACLI, and NAIC, but every carrier has their own internal manual.
+**TODO:**
+- Source or create a sample claims handling manual (could synthesize from LOMA/NAIC guidelines)
+- Implement RAG pipeline: chunk manual → embed → vector store (e.g. Bedrock Knowledge Bases or OpenSearch)
+- Update copilot system prompt to include retrieved context from manual
+- Copilot responses should cite specific manual sections when applicable
+- Demo talking point: "Imagine this grounded in your company's actual procedures"
+
+---
+
 ### W-026 ✅ scripts/ directory missing
 **Context:** Tasker has a `scripts/` dir with useful utilities: `db.sh` (prod DB access), `deploy.sh`, `logs.sh`, etc.
 **TODO:**

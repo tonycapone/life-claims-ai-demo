@@ -233,6 +233,133 @@ Claims Department"""
         yield word + " "
 
 
+FNOL_REQUIRED_FIELDS = [
+    "policy_number",
+    "beneficiary_name",
+    "beneficiary_email",
+    "beneficiary_phone",
+    "beneficiary_relationship",
+    "date_of_death",
+    "cause_of_death",
+    "manner_of_death",
+    "payout_method",
+]
+
+
+def _collected_fields(draft: dict) -> list[str]:
+    return [f for f in FNOL_REQUIRED_FIELDS if draft.get(f)]
+
+
+def _missing_fields(draft: dict) -> list[str]:
+    return [f for f in FNOL_REQUIRED_FIELDS if not draft.get(f)]
+
+
+def extract_fnol_fields(user_message: str, draft: dict) -> dict:
+    """Extract structured claim fields from a user message via non-streaming call."""
+    missing = _missing_fields(draft)
+    if not missing:
+        return {}
+
+    system = f"""You extract life insurance claim fields from user messages.
+Return ONLY valid JSON with extracted fields. Return {{}} if nothing extractable.
+
+Possible keys (extract ONLY these):
+- policy_number: string, format like "LT-XXXXX"
+- beneficiary_name: string, full name
+- beneficiary_email: string, email address
+- beneficiary_phone: string, phone number
+- beneficiary_relationship: string, e.g. "spouse", "child", "parent", "sibling", "other"
+- date_of_death: string, YYYY-MM-DD format
+- cause_of_death: string, brief description
+- manner_of_death: string, one of "natural", "accident", "undetermined"
+- payout_method: string, one of "lump_sum", "structured"
+
+Already collected: {json.dumps({f: draft[f] for f in _collected_fields(draft)})}
+Still needed: {json.dumps(missing)}
+
+Only extract fields that are still needed. Return valid JSON only, no markdown."""
+
+    messages = [{"role": "user", "content": [{"text": user_message}]}]
+
+    client = _get_client()
+    if client:
+        try:
+            text = _converse(system, messages, max_tokens=256, temperature=0.0)
+            if not text or text.strip() == "":
+                return {}
+            return _parse_json(text)
+        except Exception as e:
+            print(f"FNOL extract error: {e}")
+
+    return {}
+
+
+def stream_fnol_chat(messages: list[dict], draft: dict) -> Generator[str, None, None]:
+    """Stream conversational FNOL response as text chunks."""
+    collected = _collected_fields(draft)
+    missing = _missing_fields(draft)
+
+    system = f"""You are a compassionate claims assistant helping a beneficiary file a life insurance death benefit claim.
+
+Current draft state:
+- Collected: {json.dumps({f: draft[f] for f in collected}) if collected else "nothing yet"}
+- Still needed: {json.dumps(missing) if missing else "ALL FIELDS COLLECTED"}
+
+Guidelines:
+- Be warm, empathetic, and professional — the user is grieving
+- Keep responses to 2-4 sentences
+- Ask for at most 2-3 pieces of information at a time
+- Guide through this order: policy number → beneficiary info → death details → payout preference
+- If policy_number just collected, acknowledge it and ask for beneficiary name and relationship
+- If all fields collected, congratulate them and say you'll show a review summary
+- Never ask for information already collected
+- Use natural language, not field names"""
+
+    # Convert messages to Bedrock format
+    bedrock_msgs = []
+    for m in messages:
+        bedrock_msgs.append({
+            "role": m["role"],
+            "content": [{"text": m["content"]}],
+        })
+
+    client = _get_client()
+    if client:
+        try:
+            resp = client.converse_stream(
+                modelId=BEDROCK_MODEL_ID,
+                system=[{"text": system}],
+                messages=bedrock_msgs,
+                inferenceConfig={"maxTokens": 512, "temperature": 0.4},
+            )
+            for event in resp["stream"]:
+                if "contentBlockDelta" in event:
+                    delta = event["contentBlockDelta"]["delta"]
+                    if "text" in delta:
+                        yield delta["text"]
+            return
+        except Exception as e:
+            print(f"FNOL chat stream error: {e}")
+
+    # Mock fallback — contextual canned responses
+    if not collected:
+        mock = "I'm here to help you file a claim. Could you start by sharing your policy number? It usually looks like LT-XXXXX."
+    elif "policy_number" in collected and "beneficiary_name" not in collected:
+        mock = f"Thank you. I've found the policy. Could you tell me your full name and your relationship to the policyholder?"
+    elif "beneficiary_name" in collected and "date_of_death" not in collected:
+        mock = f"Thank you, {draft.get('beneficiary_name', '')}. I'm sorry for your loss. Could you share the date of death and the cause? I know this is difficult."
+    elif "date_of_death" in collected and "payout_method" not in collected:
+        mock = "We're almost done. For the benefit payout, would you prefer a lump sum or structured payments?"
+    elif not missing:
+        mock = "I have everything I need. Let me show you a summary so you can review and submit your claim."
+    else:
+        still = ", ".join(missing[:2])
+        mock = f"Thank you for that information. I still need: {still}. Could you provide those?"
+
+    for word in mock.split(" "):
+        yield word + " "
+
+
 def draft_communication(claim_data: dict, draft_type: str) -> dict:
     """Generate a professional communication draft."""
     beneficiary = claim_data.get("beneficiary_name", "Beneficiary")
