@@ -402,6 +402,56 @@
 
 ---
 
+### W-036 🔴 Contestability analysis: Application vs. Medical Records comparison
+**Context:** The highest-value AI feature for claims adjusters. During the 2-year contestability period, adjusters spend 2-3 days manually reading medical records and comparing against the original insurance application looking for material misrepresentations. AI can do this in seconds.
+**TODO:**
+- Create synthetic seed documents:
+  - 1-page insurance application PDF (yes/no health questionnaire) for each contestable policy
+  - 3-4 pages of medical record excerpts (doctor visits, prescriptions, lab results)
+  - Plant 2-3 deliberate discrepancies (e.g. "No" to heart disease but atrial fibrillation diagnosis in records)
+- Store documents on Policy or Claim model (application_url, medical_records_url)
+- Add `analyze_contestability(application, medical_records) -> DiscrepancyReport` to ai.py
+  - Returns structured table: question, applicant answer, medical record finding, source, assessment
+- Add "Run Contestability Analysis" button on adjuster claim detail for contestable claims
+- Add backend endpoint: `POST /api/adjuster/claims/:id/contestability`
+- Display discrepancy report as a structured card in the adjuster UI
+
+---
+
+### W-037 🟡 Mock MIB (Medical Information Bureau) cross-carrier detection
+**Context:** In real life, adjusters query MIB to check for undisclosed applications or medical history across carriers. Policy stacking (multiple policies purchased in a short window) is a major fraud indicator. We can mock this with a seed table.
+**TODO:**
+- Add `MIBRecord` model: insured_ssn_last4, carrier_name, application_date, face_amount, medical_codes
+- Seed 3-4 MIB records for demo policies (e.g. Robert Johnson has 2 additional apps totaling $1.75M)
+- Auto-query MIB on claim submission, store results on claim
+- Display MIB findings on adjuster risk card: "2 additional applications found across carriers in 6-month window"
+- Flag in risk scoring: policy stacking → high risk
+
+---
+
+### W-038 🔴 Policy-aware FNOL chat with smart follow-ups
+**Context:** If the AI knows the policy provisions (riders, exclusions), the customer-facing chat can ask intelligent follow-up questions. E.g. if the policy has an accidental death rider with an intoxication exclusion and the beneficiary says "car accident," the AI asks for the police report number — surfacing the info the adjuster needs without being insensitive about why.
+**TODO:**
+- Add `provisions` field to Policy model (JSON: riders, exclusions, conditions)
+- Seed provisions for demo policies (e.g. accidental death rider, intoxication exclusion on LT-29471)
+- Inject policy provisions into FNOL chat system prompt after policy lookup
+- AI reasons about which follow-ups matter based on cause of death + policy terms
+- Collected follow-up info visible on adjuster claim detail (police report #, accident details, etc.)
+- Add follow-up fields to Claim model: police_report_number, accident_details, etc.
+
+---
+
+### W-039 🟢 White-label / multi-carrier theming
+**Context:** The platform should demonstrate that it's not a one-off app but a configurable module that any carrier can adopt. A single config change should re-skin the entire UI with a different carrier's branding (logo, colors, company name).
+**TODO:**
+- Extract brand config to a single `theme.ts` file (logo, primary color, company name, tagline)
+- CSS variables already exist — just need to swap them per config
+- Add a theme switcher or URL param (`?carrier=nationwide`) for demo purposes
+- Create 2-3 sample carrier themes (default ClaimPath + 2 mock carriers)
+- All copy references ("Claims Department", company name in letters) pull from config
+
+---
+
 ### W-026 ✅ scripts/ directory missing
 **Context:** Tasker has a `scripts/` dir with useful utilities: `db.sh` (prod DB access), `deploy.sh`, `logs.sh`, etc.
 **TODO:**

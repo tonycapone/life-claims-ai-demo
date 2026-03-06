@@ -1,69 +1,81 @@
 # ClaimPath Demo Script (~5 minutes)
 
-## Opening — The Two Theses (30 sec)
+## Opening — The Missing Piece (30 sec)
 
-"This demo has two layers. On the surface, I'm going to show you an AI-powered life insurance claims platform — how AI can transform the beneficiary experience and the adjuster workflow. But underneath that, there's a second story: **how I built this**. The entire codebase — two frontends, a Python backend, cloud infrastructure, deployed to a real domain — was built with Claude Code in a matter of days, not months. So this is really a demo of AI on both sides of the glass: AI as the product, and AI as the developer."
+"Modern life insurance platforms have digitized origination, underwriting, and policy admin. But when a policyholder dies and a beneficiary files a claim — that process is still largely manual, paper-driven, and carrier-by-carrier. I built a prototype of what a modern, AI-native claims module looks like. And I built the whole thing — two frontends, a Python backend, deployed to a real domain — using AI-assisted development in a matter of days."
 
 ---
 
-## Act 1 — The Development Story (90 sec)
+## Act 1 — The Development Story (60 sec)
 
 ### How it started
 
-"I started with what I call a meta prompt — essentially a product spec. I told Claude: here's the layout I want, here's the user flow, here are the technologies I'm comfortable with. React, Python, FastAPI, AWS CDK, ECS Fargate. And then Claude Code generated the entire scaffold — models, routes, pages, design system, deployment scripts."
+"I started with a meta prompt — a product spec. I told Claude Code: here's the user flow, here are the technologies. React, Python, FastAPI, AWS CDK, ECS Fargate. Claude generated the full scaffold — models, routes, pages, design system, deployment scripts."
 
 ### Why these technologies
 
-"A quick note on technology choices. I didn't pick React and Python because they're objectively the 'best' tools for this job. I picked them because **I know them inside and out**. When you're putting this much trust in AI to write your code, you need to be working in a stack where you have strong intuition for what 'right' looks like. I'm not rubber-stamping AI output — I'm supervising it. And I can only supervise effectively in technologies I deeply understand."
+"I picked these because I know them inside and out. When you're putting this much trust in AI to write code, you need to supervise in a stack where you have strong intuition for what 'right' looks like. I'm not rubber-stamping AI output — I'm reviewing it in technologies I deeply understand."
 
 ### The platform
 
-"What we ended up with is a progressive web app — claimpath.click, live right now. It's a single codebase that serves both mobile and desktop. It's not in the app stores today because that approval process takes time, but architecturally there's nothing stopping us. We'd use a framework like Capacitor to wrap this as a native app and ship to iOS and Android from this same codebase. One team, one codebase, web and mobile."
+"What we ended up with is a progressive web app — claimpath.click, live right now. Single codebase for mobile and desktop. Could ship to iOS and Android via Capacitor from this same codebase. And because it's built as a module, the entire UI is white-label ready — swap a config and it's branded for any carrier."
 
 ---
 
-## Act 2 — The Beneficiary Experience (120 sec)
+## Act 2 — The Beneficiary Experience (90 sec)
 
 ### Live demo: Filing a claim via chat
 
 *Open claimpath.click on phone (or mobile viewport in browser)*
 
-"Now let's look at what we built. Imagine you've just lost a loved one. You need to file a life insurance claim. Traditionally, this is a multi-page form — confusing, clinical, the last thing you want to deal with during grief."
+"Imagine you've just lost a loved one. Traditionally, filing a life insurance claim means a multi-page form — confusing, clinical, the last thing you want to deal with during grief."
 
 *Tap "File a Death Benefit Claim"*
 
-"Instead, we give you a conversation. The AI greets you, acknowledges what you're going through, and walks you through it one step at a time."
+"Instead, we give you a conversation. The AI guides you through it step by step, with empathy."
 
 *Type: "My policy number is LT-29471"*
 
-"I give it my policy number in plain English. Behind the scenes, two things happen simultaneously: Claude extracts the structured data from my message, and then streams back a natural response. Watch — it found the policy, shows me a confirmation card with a masked name for security."
+"Behind the scenes, two AI calls happen simultaneously: one extracts structured data from my message, the other streams a natural response. It found the policy, shows a confirmation card with a masked name for security."
 
-*Confirm policy, then provide beneficiary info naturally*
+*Confirm policy, provide beneficiary info naturally*
 
-"I just talk to it like I'd talk to a person. 'My name is Sarah Smith, I'm his wife.' It pulls out name and relationship in one shot. Notice the progress dots up top — those fill in as fields are collected."
+"I talk to it like a person — 'I'm Sarah Smith, his wife, my email is sarah@example.com.' It pulls out four fields from one sentence. Progress dots fill in as data is collected."
 
 *Provide death details and payout preference*
 
-"Once all the required information is gathered, it shows me a review card right inline — no page navigation. I certify, submit, and I'm done. That entire claim filing took under two minutes, and at no point did it feel like filling out a form."
+"Review card appears inline. Certify, submit, done. Under two minutes, and it never felt like a form."
 
 ---
 
-## Act 3 — The Adjuster Side (60 sec)
+## Act 3 — The Adjuster Side (120 sec)
 
 *Switch to desktop browser, open adjuster dashboard*
 
-"On the other side, the adjuster logs in and sees the claim in their queue — already risk-scored by AI. And I want to call out: **none of this is canned or templated.** Look at the risk summary — it specifically references the cause of death I entered in the chat. I said 'car accident' and the AI wrote 'accidental vehicle collision is a covered peril with clear manner classification.' It's reasoning about the actual claim data in real time, every time. Different claim details would produce a completely different assessment."
+### Real AI, not templates
 
-"Now let me show you what happens with a riskier claim. I pre-filed one against policy FE-00291 — a final expense policy that's only been in force for about 5 months."
+"On the adjuster side, the claim lands in the queue already risk-scored by AI. And I want to call this out: **none of this is canned.** Look at the risk summary — I said 'car accident' in the chat, and the AI wrote 'accidental vehicle collision is a covered peril with clear manner classification.' It's reasoning about the actual claim data. Different details produce a completely different assessment, every time."
 
-*Open the FE-00291 claim in the queue*
+### High-risk contrast
 
-"Look at the difference. This one's flagged **high risk** with an SIU referral recommendation. The AI caught that the policy was purchased less than 6 months before death — that's deep inside the 2-year contestability window — and it's recommending a special investigations unit review. Same AI, same system, completely different assessment based on the facts. That's the power here: it's not one-size-fits-all, it's reasoning about each claim individually."
+"Now look at this other claim — policy FE-00291, a final expense policy only 5 months old."
 
-"The adjuster also has an AI copilot — they can ask it to explain the contestability concerns, draft a document request letter, or get a second opinion on next steps. And down here in Communications, one click generates a personalized letter — fully drafted by AI, ready to send."
+*Open the FE-00291 claim*
+
+"Flagged **high risk**, SIU referral recommended. The AI caught that the policy was purchased less than 6 months before death — deep inside the contestability window. Same system, completely different assessment based on the facts."
+
+### Adjuster tools
+
+"The adjuster has an AI copilot with full claim context — ask it to explain the contestability concerns, draft a document request, get a second opinion. And in Communications, one click generates a personalized letter addressed to the beneficiary, with the adjuster's name, ready to edit and send."
+
+### Where this gets powerful (the vision)
+
+"Now here's where I'd take this next. The biggest time sink in claims is contestability investigation — an adjuster spends 2-3 days reading through medical records, comparing them line by line against the original insurance application, looking for misrepresentations. 'Did the insured say no to heart disease, but the records show an atrial fibrillation diagnosis?' That's the exact same capability as parsing medical records for underwriting — just applied to the other end of the policy lifecycle. The AI reads both documents, produces a discrepancy report in seconds instead of days."
+
+"And on the intake side — if the AI knows the policy provisions, it asks smarter questions. This policy has an accidental death rider with an intoxication exclusion. So when the beneficiary says 'car accident,' the AI knows to ask for the police report number. It's not asking 'was he drunk' — it's collecting exactly what the adjuster will need, sensitively, upfront. The adjuster never has to call the beneficiary back for follow-up."
 
 ---
 
-## Close — What This Demonstrates (30 sec)
+## Close — Why This Matters (30 sec)
 
-"So to recap: this is a production-quality prototype built almost entirely with AI-assisted development. A conversational claims experience powered by Claude on AWS Bedrock, a full adjuster dashboard with AI copilot, deployed on real infrastructure. The development story matters as much as the product story — this is what's possible when you pair an experienced engineer with AI tooling. You move at prototype speed with production quality."
+"This is a production-quality prototype — conversational claims intake, AI risk scoring, adjuster copilot, communication drafting — built in days with AI-assisted development, deployed on real infrastructure. It's designed as a white-label module that any carrier could adopt. The claims side of the lifecycle is ready for the same transformation that's already happened in origination and underwriting. This is what that looks like."
