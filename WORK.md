@@ -9,7 +9,7 @@
 
 ## Open Items
 
-### W-001 🟡 Python version — upgrade to 3.12
+### W-001 ✅ Python version — upgrade to 3.12
 **Context:** System Python on tony-mac is 3.7.5 (too old). Currently using Homebrew Python 3.10 at `/usr/local/opt/python@3.10/bin/python3` as a workaround. Backend Dockerfile targets `python:3.10-slim`.
 **TODO:**
 - Install Python 3.12 via pyenv or Homebrew (`brew install python@3.12`)
@@ -19,7 +19,7 @@
 
 ---
 
-### W-002 🟡 requirements.txt — pin exact versions after install
+### W-002 ✅ requirements.txt — pin exact versions after install
 **Context:** requirements.txt uses `>=` version ranges (loose). Good for dev, bad for reproducibility in prod.
 **TODO:**
 - After Python upgrade, run `.venv/bin/pip freeze > requirements.txt`
@@ -193,7 +193,7 @@
 
 ---
 
-### W-016 🟢 Frontend unit tests not set up
+### W-016 ✅ Frontend unit tests not set up
 **Context:** Tasker uses Vitest + Testing Library for frontend unit tests. We have the deps installed (vitest is in devDeps from Vite scaffold) but no tests written.
 **TODO:**
 - Create `frontend/src/__tests__/` directory
@@ -206,7 +206,7 @@
 
 ---
 
-### W-017 🟢 E2E tests with Playwright not set up
+### W-017 ✅ E2E tests with Playwright not set up
 **Context:** Tasker has full Playwright e2e setup with separate test backend port, test DB, and mobile viewport (390x844 iPhone 14). Key flows should be covered.
 **TODO:**
 - Install `@playwright/test` as devDependency (root)
@@ -299,7 +299,7 @@
 
 ---
 
-### W-025 🟢 README missing
+### W-025 ✅ README missing
 **Context:** No README.md at repo root.
 **TODO:**
 - Write README:
