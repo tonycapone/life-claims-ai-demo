@@ -8,6 +8,7 @@ import IdentityVerify from './pages/IdentityVerify'
 import PayoutPrefs from './pages/PayoutPrefs'
 import ReviewSubmit from './pages/ReviewSubmit'
 import Confirmation from './pages/Confirmation'
+import FNOLChat from './pages/FNOLChat'
 import ClaimStatus from './pages/ClaimStatus'
 import AdjusterLogin from './pages/adjuster/AdjusterLogin'
 import AdjusterQueue from './pages/adjuster/AdjusterQueue'
@@ -18,6 +19,7 @@ export default function AppRoutes() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/claim/chat" element={<FNOLChat />} />
         <Route path="/claim/lookup" element={<PolicyLookup />} />
         <Route path="/claim/beneficiary" element={<BeneficiaryInfo />} />
         <Route path="/claim/death-info" element={<DeathInfo />} />

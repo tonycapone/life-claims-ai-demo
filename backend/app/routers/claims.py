@@ -1,13 +1,15 @@
 import os
 import uuid
+import json
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_db
 from app.models import Policy, Claim, ClaimStatus
-from app.ai import extract_document, score_risk
+from app.ai import extract_document, score_risk, extract_fnol_fields, stream_fnol_chat, FNOL_REQUIRED_FIELDS, _missing_fields
 
 router = APIRouter()
 
@@ -52,6 +54,16 @@ class UpdateClaimRequest(BaseModel):
     bank_account_last4: Optional[str] = None
 
 
+class FNOLChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class FNOLChatRequest(BaseModel):
+    messages: list[FNOLChatMessage]
+    draft: dict = {}
+
+
 # ── Endpoints ─────────────────────────────────────────────
 
 @router.post("/lookup")
@@ -85,6 +97,119 @@ def lookup_policy(req: PolicyLookupRequest, db: Session = Depends(get_db)):
         "policy_type": policy.policy_type,
         "status": policy.status,
     }
+
+
+@router.post("/fnol/chat")
+def fnol_chat(req: FNOLChatRequest, db: Session = Depends(get_db)):
+    """Conversational FNOL — extract fields + stream response as SSE."""
+    draft = dict(req.draft)
+    last_user_msg = ""
+    for m in reversed(req.messages):
+        if m.role == "user":
+            last_user_msg = m.content
+            break
+
+    if not last_user_msg:
+        raise HTTPException(status_code=400, detail="No user message")
+
+    # 1. Extract fields from latest user message
+    new_fields = extract_fnol_fields(last_user_msg, draft)
+
+    # 2. Policy lookup if policy_number just extracted
+    policy_event = None
+    if "policy_number" in new_fields:
+        policy = db.query(Policy).filter_by(
+            policy_number=new_fields["policy_number"].upper()
+        ).first()
+        if policy and policy.status == "in_force":
+            parts = policy.insured_name.split()
+            masked = " ".join(p[0] + "*" * (len(p) - 1) for p in parts)
+            policy_event = {
+                "found": True,
+                "policy_id": policy.id,
+                "policy_number": policy.policy_number,
+                "insured_name_masked": masked,
+                "policy_type": policy.policy_type,
+            }
+            new_fields["policy_number"] = policy.policy_number  # normalize
+        else:
+            policy_event = {"found": False}
+            new_fields.pop("policy_number", None)
+
+    # 3. Merge new fields into draft
+    draft.update(new_fields)
+
+    # 4. Create or update claim in DB
+    claim_id = draft.get("claim_id")
+    if not claim_id and draft.get("policy_number") and draft.get("beneficiary_name"):
+        policy = db.query(Policy).filter_by(
+            policy_number=draft["policy_number"].upper()
+        ).first()
+        if policy:
+            claim = Claim(
+                claim_number=generate_claim_number(),
+                policy_number=draft["policy_number"].upper(),
+                insured_name=policy.insured_name,
+                insured_dob=policy.insured_dob,
+                policy_issue_date=policy.issue_date,
+                face_amount=policy.face_amount,
+                beneficiary_name=draft.get("beneficiary_name"),
+                beneficiary_email=draft.get("beneficiary_email"),
+                beneficiary_phone=draft.get("beneficiary_phone"),
+                beneficiary_relationship=draft.get("beneficiary_relationship"),
+                date_of_death=draft.get("date_of_death"),
+                cause_of_death=draft.get("cause_of_death"),
+                manner_of_death=draft.get("manner_of_death"),
+                payout_method=draft.get("payout_method"),
+                status=ClaimStatus.DRAFT,
+            )
+            db.add(claim)
+            db.commit()
+            db.refresh(claim)
+            draft["claim_id"] = claim.id
+            draft["claim_number"] = claim.claim_number
+    elif claim_id and new_fields:
+        claim = db.query(Claim).filter_by(id=claim_id).first()
+        if claim and claim.status == ClaimStatus.DRAFT:
+            for field, value in new_fields.items():
+                if hasattr(claim, field):
+                    setattr(claim, field, value)
+            db.commit()
+
+    # 5. Check if all required fields collected
+    all_collected = len(_missing_fields(draft)) == 0
+
+    # 6. Build SSE stream
+    # Convert messages to simple dicts for AI
+    chat_msgs = [{"role": m.role, "content": m.content} for m in req.messages]
+    # Limit to last 20 messages
+    chat_msgs = chat_msgs[-20:]
+
+    def event_stream():
+        # Send extracted fields
+        fields_payload = dict(new_fields)
+        if draft.get("claim_id"):
+            fields_payload["claim_id"] = draft["claim_id"]
+        if draft.get("claim_number"):
+            fields_payload["claim_number"] = draft["claim_number"]
+        if fields_payload:
+            yield f"data: {json.dumps({'type': 'fields', 'data': fields_payload})}\n\n"
+
+        # Send policy event
+        if policy_event is not None:
+            yield f"data: {json.dumps({'type': 'policy', 'data': policy_event})}\n\n"
+
+        # Send show_review action if all fields collected
+        if all_collected:
+            yield f"data: {json.dumps({'type': 'action', 'action': 'show_review'})}\n\n"
+
+        # Stream conversational response
+        for chunk in stream_fnol_chat(chat_msgs, draft):
+            yield f"data: {json.dumps({'type': 'text', 'data': chunk})}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.post("")

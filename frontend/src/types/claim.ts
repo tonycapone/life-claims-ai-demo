@@ -63,6 +63,13 @@ export interface Claim {
   updated_at?: string
 }
 
+export interface FNOLMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+  widget?: 'policy_confirm' | 'review'
+}
+
 // Draft claim state stored in ClaimContext across multi-step form
 export interface ClaimDraft {
   policy_number?: string
@@ -84,4 +91,6 @@ export interface ClaimDraft {
   claim_id?: string
   claim_number?: string
   current_step?: number
+  policy_verified?: boolean
+  chat_messages?: FNOLMessage[]
 }
