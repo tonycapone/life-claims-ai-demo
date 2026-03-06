@@ -128,7 +128,7 @@ Return JSON only:
         risk_level = "high"
         recommendation = "siu_referral"
 
-    manner = claim_data.get("manner_of_death", "").lower()
+    manner = (claim_data.get("manner_of_death") or "").lower()
     if manner in ("accident", "undetermined"):
         flags.append(f"Manner of death ({manner}) requires additional documentation")
         if risk_level == "low":
