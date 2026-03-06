@@ -105,6 +105,7 @@ STATUS_MAP = {
     "escalate": ClaimStatus.SIU_REVIEW,
     "request_docs": ClaimStatus.PENDING_DOCUMENTS,
     "contestability": ClaimStatus.CONTESTABILITY_REVIEW,
+    "review": ClaimStatus.UNDER_REVIEW,
 }
 
 
