@@ -162,6 +162,7 @@ def fnol_chat(req: FNOLChatRequest, db: Session = Depends(get_db)):
                 manner_of_death=draft.get("manner_of_death"),
                 payout_method=draft.get("payout_method"),
                 status=ClaimStatus.DRAFT,
+                jurisdiction_state="IL",  # Default to Illinois for demo
             )
             db.add(claim)
             db.commit()
