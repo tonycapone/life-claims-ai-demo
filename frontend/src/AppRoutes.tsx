@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Landing from './pages/Landing'
+import DemoLanding from './pages/DemoLanding'
 import PolicyLookup from './pages/PolicyLookup'
 import BeneficiaryInfo from './pages/BeneficiaryInfo'
 import DeathInfo from './pages/DeathInfo'
@@ -13,12 +13,14 @@ import ClaimStatus from './pages/ClaimStatus'
 import AdjusterLogin from './pages/adjuster/AdjusterLogin'
 import AdjusterQueue from './pages/adjuster/AdjusterQueue'
 import AdjusterClaimDetail from './pages/adjuster/AdjusterClaimDetail'
+import CarrierLogin from './pages/carrier/CarrierLogin'
+import CarrierHome from './pages/carrier/CarrierHome'
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<DemoLanding />} />
         <Route path="/claim/chat" element={<FNOLChat />} />
         <Route path="/claim/lookup" element={<PolicyLookup />} />
         <Route path="/claim/beneficiary" element={<BeneficiaryInfo />} />
@@ -29,6 +31,9 @@ export default function AppRoutes() {
         <Route path="/claim/review" element={<ReviewSubmit />} />
         <Route path="/claim/confirmation" element={<Confirmation />} />
         <Route path="/claim/status" element={<ClaimStatus />} />
+        <Route path="/carrier" element={<Navigate to="/carrier/login" replace />} />
+        <Route path="/carrier/login" element={<CarrierLogin />} />
+        <Route path="/carrier/home" element={<CarrierHome />} />
         <Route path="/adjuster" element={<Navigate to="/adjuster/login" replace />} />
         <Route path="/adjuster/login" element={<AdjusterLogin />} />
         <Route path="/adjuster/queue" element={<AdjusterQueue />} />
