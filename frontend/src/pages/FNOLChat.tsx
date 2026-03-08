@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClaim } from '../contexts/ClaimContext'
-import type { FNOLMessage, DeathCertificateExtraction } from '../types/claim'
+import type { FNOLMessage, DeathCertificateExtraction, MannerOfDeath } from '../types/claim'
 
 const FNOL_REQUIRED = [
   'policy_number', 'beneficiary_name', 'beneficiary_email',
@@ -192,7 +192,7 @@ export default function FNOLChat() {
         death_certificate_extracted: extracted,
         ...(extracted.date_of_death && { date_of_death: extracted.date_of_death }),
         ...(extracted.cause_of_death && { cause_of_death: extracted.cause_of_death }),
-        ...(extracted.manner_of_death && { manner_of_death: extracted.manner_of_death }),
+        ...(extracted.manner_of_death && { manner_of_death: extracted.manner_of_death as MannerOfDeath }),
       })
     } catch (e) {
       console.error('Upload error:', e)
