@@ -18,8 +18,8 @@ import {
 const CAPABILITIES = [
   { icon: faComments, label: 'Conversational claim intake' },
   { icon: faBrain, label: 'AI risk scoring & analysis' },
-  { icon: faShieldHalved, label: 'Adjuster copilot with claim context' },
-  { icon: faFileLines, label: 'AI-drafted communications' },
+  { icon: faShieldHalved, label: 'Contestability analysis' },
+  { icon: faFileLines, label: 'AI copilot & communications' },
 ]
 
 export default function DemoLanding() {
@@ -153,6 +153,30 @@ export default function DemoLanding() {
             <div>
               <strong>Death Certificate</strong>
               <span>John Michael Smith — upload this during the claim flow</span>
+            </div>
+          </a>
+          <a
+            href="/demo/application-smith.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="demo-resource-link demo-resource-link--pdf"
+          >
+            <FontAwesomeIcon icon={faFilePdf} />
+            <div>
+              <strong>Insurance Application</strong>
+              <span>Original application with health questionnaire — used in contestability analysis</span>
+            </div>
+          </a>
+          <a
+            href="/demo/medical-records-smith.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="demo-resource-link demo-resource-link--pdf"
+          >
+            <FontAwesomeIcon icon={faFilePdf} />
+            <div>
+              <strong>Medical Records</strong>
+              <span>Lakeview Internal Medicine records — contains undisclosed conditions</span>
             </div>
           </a>
         </div>

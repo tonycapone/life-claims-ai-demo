@@ -311,7 +311,44 @@ Plus a **Communications** section with three draft buttons.
 
 > "And notice the regulatory timeline below it -- the system automatically tracks state-specific deadlines. This is an Illinois claim, so we have 15 business days to acknowledge and 30 days to decide per 215 ILCS 5/154.6. The deadlines are calculated from the filing date and the system knows whether we're on track, approaching a deadline, or overdue. Go look at the Linda Chen claim later -- that's a California claim, different statute, different rules, all handled automatically."
 
-### Step 3.6: Demonstrate the AI Copilot
+### Step 3.6: Run Contestability Analysis (THE Demo Moment)
+
+Below the risk card, you'll see a **Contestability Analysis** card with a prominent button: **"Run Contestability Analysis"**. This only appears for claims within the 2-year contestability window.
+
+> "Now here's where it gets really powerful. This policy is 14 months old -- within the 2-year contestability period. The adjuster has the original insurance application and the insured's medical records. Normally, an adjuster spends 2-3 days reading through these documents line by line, comparing what the applicant disclosed against what the medical records show. Let me show you what AI can do."
+
+**Click** the **"Run Contestability Analysis"** button.
+
+**What happens:**
+- A loading state appears: "Analyzing application against medical records..."
+- The AI compares the insurance application health questionnaire answers against the actual medical records
+- After a few seconds, a detailed **Contestability Analysis Report** appears
+
+**The report shows:**
+
+1. **Header** with a red severity indicator: "4 Material" discrepancies found
+
+2. **Summary**: "Four material misrepresentations identified on the insurance application..."
+
+3. **Discrepancy Table** -- each finding is a structured card showing:
+   - **Application Question**: "Have you ever been diagnosed with heart disease?"
+   - **Applicant's Answer**: "No" (highlighted in red)
+   - **Medical Record Finding**: "Patient was diagnosed with atrial fibrillation on June 15, 2023..." (with source date)
+   - **Assessment**: "Material misrepresentation -- AFib is a form of cardiac arrhythmia..."
+
+4. **Materiality Assessment**: "The undisclosed conditions are directly and causally related to the cause of death (acute myocardial infarction / STEMI)..."
+
+5. **AI Recommendation**: "contestability review"
+
+> "In seconds, the AI compared the original insurance application against the medical records and found four material misrepresentations. The applicant denied having heart disease, but the records show an atrial fibrillation diagnosis. He denied being on blood pressure medication, but he was on lisinopril. He denied ER visits, but there's a chest pain ER visit nine months before the application. And he denied taking any medications while actively on four cardiovascular drugs."
+
+> "This analysis normally takes an adjuster 2-3 days of manual review. The AI did it in seconds. And notice -- the undisclosed conditions are directly related to the cause of death. The insured died of a heart attack, and he concealed a history of heart disease. That's the kind of finding that changes the trajectory of a $500,000 claim."
+
+> "This single feature -- application versus medical records comparison -- is what shifts the conversation from 'nice demo' to 'when can we pilot this.' It's the same core AI capability as medical records parsing on the underwriting side, just applied to the other end of the policy lifecycle."
+
+**Tip:** You can also open the insurance application and medical records PDFs from the landing page's "Demo resources" section to show the audience what the AI was analyzing. The application shows the yes/no health questionnaire, and the medical records show the actual doctor visits and prescriptions that contradict those answers.
+
+### Step 3.7: Demonstrate the AI Copilot (if time permits)
 
 The copilot panel shows:
 - A header with "AI Copilot" label
@@ -345,7 +382,7 @@ The AI generates a professional, empathetic letter in real time, addressing the 
 
 **Tip:** Wait for the streaming response to finish completely before asking another question. The responses render with Markdown formatting.
 
-### Step 3.7: Draft a communication
+### Step 3.8: Draft a communication
 
 Scroll down the left column to the **Communications** section.
 
@@ -363,7 +400,7 @@ Scroll down the left column to the **Communications** section.
 
 > "One click generates a personalized, professional letter. It's addressed to the beneficiary by name, references the claim number, and signs off with the adjuster's name. And it's fully editable -- the adjuster reviews and modifies before sending."
 
-### Step 3.8: Take action on the claim
+### Step 3.9: Take action on the claim
 
 **Click** the **"Take Action"** button in the header bar.
 
@@ -384,7 +421,7 @@ Plus:
 
 > "The adjuster can approve, deny, escalate to SIU, request documents, or open a formal contestability review -- all from one screen. Every action is logged in the audit trail."
 
-### Step 3.9: Show the high-risk contrast
+### Step 3.10: Show the high-risk contrast
 
 **Click** the **"< Queue"** button to go back to the claims queue.
 
@@ -425,9 +462,11 @@ Navigate back to the landing page (https://claimpath.click).
 
 5. **White-label ready.** The customer app is carrier-branded from a single config. Swap the config and the entire experience re-skins for a different carrier.
 
-### The bigger vision
+6. **Contestability analysis in seconds.** The biggest time sink in claims -- an adjuster spending 2-3 days comparing medical records against the insurance application -- is done by AI in seconds. Four material misrepresentations found instantly, with structured evidence and legal citations.
 
-> "And there's a clear roadmap for what makes this truly transformative: contestability analysis. The biggest time sink in claims is an adjuster spending two to three days reading medical records, comparing them line by line against the insurance application, looking for material misrepresentations. AI can do that comparison in seconds. That's the same capability as Underwriter Assist -- parsing medical records -- just applied to the other end of the policy lifecycle."
+### The bigger picture
+
+> "What you just saw is the same core AI capability as medical records parsing on the underwriting side -- reading, comparing, and reasoning about complex medical documents -- just applied to the other end of the policy lifecycle. The contestability analysis alone, according to one COO review, 'is not a 15-minute time savings -- it's a 2-day time savings per contestability claim. That alone justifies the entire platform.'"
 
 ---
 
