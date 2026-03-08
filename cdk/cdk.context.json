@@ -1,0 +1,14 @@
+{
+  "hosted-zone:account=138459849594:domainName=claimpath.click:region=us-east-1": {
+    "Id": "/hostedzone/Z066971524WRDRDHBXJPZ",
+    "Name": "claimpath.click."
+  },
+  "availability-zones:account=138459849594:region=us-east-1": [
+    "us-east-1a",
+    "us-east-1b",
+    "us-east-1c",
+    "us-east-1d",
+    "us-east-1e",
+    "us-east-1f"
+  ]
+}

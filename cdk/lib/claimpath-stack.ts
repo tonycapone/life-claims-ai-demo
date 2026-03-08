@@ -9,10 +9,25 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
+
+const DOMAIN = 'claimpath.click';
 
 export class ClaimPathStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // ─── DNS + TLS ──────────────────────────────────────────────────────────
+    const zone = route53.HostedZone.fromLookup(this, 'Zone', {
+      domainName: DOMAIN,
+    });
+
+    const certificate = new acm.Certificate(this, 'SiteCert', {
+      domainName: DOMAIN,
+      validation: acm.CertificateValidation.fromDns(zone),
+    });
 
     // ─── VPC — public + private subnets, single NAT gateway ─────────────────
     const vpc = new ec2.Vpc(this, 'ClaimPathVPC', {
@@ -80,23 +95,19 @@ export class ClaimPathStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
-    // ─── Anthropic API key secret ─────────────────────────────────────────────
-    // Create manually before first deploy:
-    // aws secretsmanager create-secret \
-    //   --name claimpath/anthropic-api-key \
-    //   --secret-string '{"key":"sk-ant-..."}'
-    const anthropicSecret = secretsmanager.Secret.fromSecretNameV2(
-      this, 'AnthropicApiKey', 'claimpath/anthropic-api-key'
-    );
-
     // ─── ECS Task Role ────────────────────────────────────────────────────────
     const taskRole = new iam.Role(this, 'ClaimPathTaskRole', {
       assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
     });
 
     dbCredentials.grantRead(taskRole);
-    anthropicSecret.grantRead(taskRole);
     documentsBucket.grantReadWrite(taskRole);
+
+    // Bedrock — invoke Claude models
+    taskRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+      resources: ['arn:aws:bedrock:*::foundation-model/*'],
+    }));
 
     // Allow ECS tasks → RDS
     database.connections.allowFrom(
@@ -105,7 +116,7 @@ export class ClaimPathStack extends cdk.Stack {
       'Allow from ECS tasks'
     );
 
-    // ─── ECS Fargate — 256 CPU / 512MB (minimum), public subnet, 1 task ──────
+    // ─── ECS Fargate — 256 CPU / 512MB (minimum), private subnet, 1 task ────
     const backendService = new ecs_patterns.ApplicationLoadBalancedFargateService(
       this,
       'ClaimPathBackend',
@@ -126,9 +137,6 @@ export class ClaimPathStack extends cdk.Stack {
             S3_BUCKET: documentsBucket.bucketName,
             DATABASE_URL: `postgresql://postgres:${dbCredentials.secretValueFromJson('password').unsafeUnwrap()}@${database.instanceEndpoint.hostname}:5432/claimpath?sslmode=require`,
           },
-          secrets: {
-            ANTHROPIC_API_KEY: ecs.Secret.fromSecretsManager(anthropicSecret, 'key'),
-          },
           taskRole,
         },
         publicLoadBalancer: true,
@@ -140,12 +148,16 @@ export class ClaimPathStack extends cdk.Stack {
       port: '8000',
     });
 
-    // ─── CloudFront — US/EU only (PRICE_CLASS_100), cheapest tier ────────────
+    // ─── CloudFront — claimpath.click, US/EU only ───────────────────────────
     const oai = new cloudfront.OriginAccessIdentity(this, 'OAI');
     frontendBucket.grantRead(oai);
 
     const distribution = new cloudfront.CloudFrontWebDistribution(this, 'ClaimPathCDN', {
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100, // US + EU only
+      viewerCertificate: cloudfront.ViewerCertificate.fromAcmCertificate(certificate, {
+        aliases: [DOMAIN],
+        securityPolicy: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
+      }),
       originConfigs: [
         {
           // Frontend — S3
@@ -183,9 +195,15 @@ export class ClaimPathStack extends cdk.Stack {
       ],
     });
 
+    // ─── Route53 A record → CloudFront ──────────────────────────────────────
+    new route53.ARecord(this, 'SiteRecord', {
+      zone,
+      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
+    });
+
     // ─── Outputs ──────────────────────────────────────────────────────────────
-    new cdk.CfnOutput(this, 'CloudFrontURL', {
-      value: `https://${distribution.distributionDomainName}`,
+    new cdk.CfnOutput(this, 'SiteURL', {
+      value: `https://${DOMAIN}`,
       description: 'ClaimPath app URL',
     });
 
