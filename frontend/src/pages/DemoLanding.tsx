@@ -8,6 +8,7 @@ import {
   faComments,
   faBrain,
   faFileLines,
+  faFilePdf,
 } from '@fortawesome/free-solid-svg-icons'
 
 const CAPABILITIES = [
@@ -102,6 +103,24 @@ export default function DemoLanding() {
               <span>{cap.label}</span>
             </div>
           ))}
+        </div>
+
+        {/* Demo resources */}
+        <div className="demo-landing__section-label">Demo resources</div>
+
+        <div className="demo-landing__resources">
+          <a
+            href="/demo/death-certificate-smith.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="demo-resource-link"
+          >
+            <FontAwesomeIcon icon={faFilePdf} />
+            <div>
+              <strong>Death Certificate</strong>
+              <span>John Michael Smith — upload this during the claim flow</span>
+            </div>
+          </a>
         </div>
 
         {/* Context */}
