@@ -195,7 +195,7 @@ def generate():
     c.setTitle("Medical Records - John Michael Smith")
     c.setAuthor("Lakeview Internal Medicine")
 
-    total_pages = 4
+    total_pages = 6
     page_num = 1
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -266,6 +266,22 @@ def generate():
                            "5. Referred to Dr. Patel (Cardiology) for AFib management",
                        ])
 
+    draw_footer(c, page_num)
+    c.showPage()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 2: September 2023 follow-up + ER visit
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    page_num = 2
+    y = HEIGHT - MARGIN
+
+    c.setStrokeColor(BORDER)
+    c.setLineWidth(1)
+    c.rect(MARGIN - 4, MARGIN - 4, INNER_W + 8, HEIGHT - 2 * MARGIN + 8)
+
+    y = draw_page_header(c, y, page_num, total_pages)
+
     # ── Encounter 2: Hypertension follow-up ────────────────────────────────────
     y = draw_encounter(c, y,
                        "September 20, 2023",
@@ -306,10 +322,10 @@ def generate():
     c.showPage()
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 2: ER visit + Annual physical
+    # PAGE 3: ER Visit (March 2024)
     # ═══════════════════════════════════════════════════════════════════════════
 
-    page_num = 2
+    page_num = 3
     y = HEIGHT - MARGIN
 
     c.setStrokeColor(BORDER)
@@ -364,6 +380,22 @@ def generate():
                            "5. Return to ED if chest pain recurs, worsens, or new symptoms develop",
                        ])
 
+    draw_footer(c, page_num)
+    c.showPage()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 4: Annual physical
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    page_num = 4
+    y = HEIGHT - MARGIN
+
+    c.setStrokeColor(BORDER)
+    c.setLineWidth(1)
+    c.rect(MARGIN - 4, MARGIN - 4, INNER_W + 8, HEIGHT - 2 * MARGIN + 8)
+
+    y = draw_page_header(c, y, page_num, total_pages)
+
     # ── Encounter 4: Annual physical ───────────────────────────────────────────
     y = draw_encounter(c, y,
                        "August 5, 2024",
@@ -413,10 +445,10 @@ def generate():
     c.showPage()
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 3: Routine follow-up + earlier history
+    # PAGE 5: Routine follow-up + summary tables
     # ═══════════════════════════════════════════════════════════════════════════
 
-    page_num = 3
+    page_num = 5
     y = HEIGHT - MARGIN
 
     c.setStrokeColor(BORDER)
@@ -466,7 +498,6 @@ def generate():
                        ])
 
     # ── Medication History Summary ─────────────────────────────────────────────
-    y -= 8
     c.setFillColor(SECTION_BG)
     c.roundRect(MARGIN + 4, y - 16, INNER_W - 8, 16, 2, fill=1, stroke=0)
     c.setFillColor(ACCENT)
@@ -502,7 +533,7 @@ def generate():
         c.drawString(MARGIN + 340, y, indication)
         y -= 12
 
-    y -= 8
+    y -= 6
 
     # ── Problem List / Medical History Summary ─────────────────────────────────
     c.setFillColor(SECTION_BG)
@@ -541,73 +572,55 @@ def generate():
         c.drawString(MARGIN + 400, y, status)
         y -= 12
 
-    y -= 8
+    y -= 6
 
-    # ── Allergy List ───────────────────────────────────────────────────────────
+    # ── Allergy / Social / Family History (compact) ───────────────────────────
     c.setFillColor(SECTION_BG)
     c.roundRect(MARGIN + 4, y - 16, INNER_W - 8, 16, 2, fill=1, stroke=0)
     c.setFillColor(ACCENT)
     c.setFont("Helvetica-Bold", 7.5)
-    c.drawString(MARGIN + 12, y - 12, "ALLERGIES")
-    y -= 28
+    c.drawString(MARGIN + 12, y - 12, "ALLERGIES / SOCIAL / FAMILY HISTORY")
+    y -= 26
 
     c.setFillColor(DARK)
-    c.setFont("Helvetica", 7.5)
-    c.drawString(MARGIN + 12, y, "No known drug allergies (NKDA)")
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(MARGIN + 12, y, "Allergies:")
+    c.setFont("Helvetica", 7)
+    c.drawString(MARGIN + 62, y, "No known drug allergies (NKDA)")
+    y -= 11
+
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(MARGIN + 12, y, "Tobacco:")
+    c.setFont("Helvetica", 7)
+    c.drawString(MARGIN + 55, y, "Former smoker — quit 2017 (~7 years prior). 1/2 PPD x 15 years.")
+    y -= 11
+
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(MARGIN + 12, y, "Alcohol:")
+    c.setFont("Helvetica", 7)
+    c.drawString(MARGIN + 55, y, "Social — 1-2 drinks/week. No history of abuse.")
+    y -= 11
+
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(MARGIN + 12, y, "Family Hx:")
+    c.setFont("Helvetica", 7)
+    c.drawString(MARGIN + 62, y, "Father deceased (MI at 62, CAD, HTN). Mother living (age 83, DM2). Brother (55, HTN).")
+    y -= 11
+
+    c.setFont("Helvetica-Bold", 7)
+    c.drawString(MARGIN + 12, y, "Occupation:")
+    c.setFont("Helvetica", 7)
+    c.drawString(MARGIN + 68, y, "Financial analyst. Married to Sarah Smith. Two adult children.")
     y -= 16
-
-    # ── Social History ─────────────────────────────────────────────────────────
-    c.setFillColor(SECTION_BG)
-    c.roundRect(MARGIN + 4, y - 16, INNER_W - 8, 16, 2, fill=1, stroke=0)
-    c.setFillColor(ACCENT)
-    c.setFont("Helvetica-Bold", 7.5)
-    c.drawString(MARGIN + 12, y - 12, "SOCIAL HISTORY")
-    y -= 28
-
-    social = [
-        "Tobacco: Former smoker — quit 2017 (approximately 7 years prior). Smoked 1/2 PPD x 15 years.",
-        "Alcohol: Social — 1-2 drinks per week. No history of alcohol abuse.",
-        "Exercise: Walks 30 minutes daily. No structured exercise program.",
-        "Occupation: Financial analyst. Sedentary desk work. Reports moderate work stress.",
-        "Marital status: Married to Sarah Smith. Two adult children.",
-    ]
-
-    c.setFillColor(DARK)
-    c.setFont("Helvetica", 7.5)
-    for line in social:
-        c.drawString(MARGIN + 12, y, line)
-        y -= 11
-
-    y -= 8
-
-    # ── Family History ─────────────────────────────────────────────────────────
-    c.setFillColor(SECTION_BG)
-    c.roundRect(MARGIN + 4, y - 16, INNER_W - 8, 16, 2, fill=1, stroke=0)
-    c.setFillColor(ACCENT)
-    c.setFont("Helvetica-Bold", 7.5)
-    c.drawString(MARGIN + 12, y - 12, "FAMILY HISTORY")
-    y -= 28
-
-    family = [
-        "Father: Deceased — myocardial infarction at age 62. History of CAD and hypertension.",
-        "Mother: Living, age 83. History of type 2 diabetes and osteoarthritis.",
-        "Siblings: Brother (age 55) — hypertension. Sister (age 52) — healthy.",
-    ]
-
-    c.setFillColor(DARK)
-    c.setFont("Helvetica", 7.5)
-    for line in family:
-        c.drawString(MARGIN + 12, y, line)
-        y -= 11
 
     draw_footer(c, page_num)
     c.showPage()
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 4: Final encounter (death) + records attestation
+    # PAGE 6: Final encounter (death) + records attestation
     # ═══════════════════════════════════════════════════════════════════════════
 
-    page_num = 4
+    page_num = 6
     y = HEIGHT - MARGIN
 
     c.setStrokeColor(BORDER)
