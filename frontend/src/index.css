@@ -1124,6 +1124,150 @@ p:last-child { margin-bottom: 0; }
 }
 
 
+/* ── FNOL Inline Upload Widget ─────────────────────────── */
+.fnol-upload-card {
+  align-self: flex-start;
+  max-width: 85%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.fnol-upload-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.fnol-upload-card__icon {
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+}
+
+.fnol-upload-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.fnol-upload-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--color-surface-alt);
+}
+
+.fnol-upload-zone:hover {
+  border-color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.03);
+}
+
+.fnol-upload-zone--dragover {
+  border-color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.06);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.fnol-upload-zone__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.fnol-upload-zone__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.125rem;
+}
+
+.fnol-upload-zone__hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.fnol-upload-card__error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  margin-top: 0.5rem;
+}
+
+.fnol-upload-card__skip {
+  margin-top: 0.625rem;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  width: 100%;
+  justify-content: center;
+}
+
+.fnol-upload-processing {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.fnol-upload-processing__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 0.125rem;
+}
+
+.fnol-upload-processing__file {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+/* Extraction confirmation card */
+.fnol-extraction-card {
+  align-self: flex-start;
+  max-width: 85%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-success);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.fnol-extraction-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.fnol-extraction-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-success);
+}
+
+.fnol-extraction-card .extraction-card {
+  margin-bottom: 0.75rem;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+}
+
+.fnol-extraction-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 640px) {
   h1 { font-size: 1.625rem; }
@@ -1442,6 +1586,16 @@ p:last-child { margin-bottom: 0; }
   justify-content: center;
   gap: 0.75rem;
   font-weight: 500;
+}
+
+.carrier-login__hint {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-align: center;
 }
 
 .carrier-login__footer {

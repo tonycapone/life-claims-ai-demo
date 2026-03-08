@@ -77,6 +77,10 @@ export default function CarrierLogin() {
           {' · '}
           <a href="#" onClick={e => e.preventDefault()}>Create account</a>
         </p>
+
+        <div className="carrier-login__hint">
+          <strong>Demo:</strong> sarah.smith@email.com / password123
+        </div>
       </div>
 
       <div className="carrier-login__footer">
