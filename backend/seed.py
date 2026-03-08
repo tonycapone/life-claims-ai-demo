@@ -116,33 +116,15 @@ def seed():
         db.commit()
         print("✅ Policies seeded")
 
+        # ── Cleanup: remove demo claims that are no longer seeded ────────────
+        stale = db.query(Claim).filter_by(claim_number="CLM-2026-00138").first()
+        if stale:
+            db.delete(stale)
+            db.commit()
+            print("🧹 Removed stale Sarah Smith claim (reserved for live demo)")
+
         # ── Claims ────────────────────────────────────────────────────────────
-        import uuid
         claims = [
-            {
-                "id": "claim-001",
-                "claim_number": "CLM-2026-00138",
-                "policy_number": "LT-29471",
-                "insured_name": "John Michael Smith",
-                "beneficiary_name": "Sarah Smith",
-                "beneficiary_email": "sarah.smith@email.com",
-                "beneficiary_phone": "314-555-0142",
-                "beneficiary_relationship": "Spouse",
-                "date_of_death": str(today - timedelta(days=3)),
-                "cause_of_death": "Acute myocardial infarction",
-                "manner_of_death": "Natural",
-                "identity_verified": True,
-                "status": ClaimStatus.CONTESTABILITY_REVIEW,
-                "risk_level": RiskLevel.MEDIUM,
-                "contestability_alert": True,
-                "months_since_issue": 14.0,
-                "risk_flags": [
-                    "Policy issued 14 months ago — within 2-year contestability period",
-                    "Cardiac event not disclosed on original application",
-                ],
-                "ai_summary": "Death benefit claim for John Smith. Policy LT-29471 was issued 14 months ago placing it within the 2-year contestability period. Cause of death (acute myocardial infarction) was not disclosed as a pre-existing condition on the application. Recommend requesting medical records before approving.",
-                "assigned_adjuster": "jmartinez",
-            },
             {
                 "id": "claim-002",
                 "claim_number": "CLM-2026-00135",
