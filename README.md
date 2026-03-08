@@ -1,30 +1,33 @@
 # ClaimPath
 
-> AI-guided life insurance death benefit claims — built as a rapid prototype.
+> The missing claims module for modern life insurance.
+
+**Live demo:** [https://claimpath.click](https://claimpath.click)
 
 ClaimPath reimagines the death benefit claims experience for life insurance carriers. Today, beneficiaries navigate a maze of phone calls, paper forms, and weeks of silence after losing a loved one. Adjusters spend most of their time on data entry and document chasing instead of actual decision-making.
 
-ClaimPath fixes both sides of that equation with a two-sided AI-powered platform.
+ClaimPath fixes both sides with an AI-native, white-label platform that any carrier could adopt.
 
 ---
 
 ## What It Does
 
-### For Beneficiaries (Customer PWA)
-A mobile-first, installable web app that guides a grieving beneficiary through filing a death benefit claim in about 10 minutes — no phone calls, no paper, no confusion.
+### For Beneficiaries (Carrier-Branded Mobile App)
+A mobile-first web app embedded in a carrier-branded shell (Tidewell Life Insurance). Guides a grieving beneficiary through filing a death benefit claim in about 10 minutes — no phone calls, no paper, no confusion.
 
-- **Conversational intake** — step-by-step guided flow, one question at a time
-- **AI document extraction** — upload the death certificate and Claude pulls out the key fields instantly (name, date of death, cause, jurisdiction)
-- **Identity verification** — ID scan + selfie match, same flow as opening a bank account
-- **Real-time claim tracker** — no more calling to check status; beneficiaries see exactly where their claim stands
+- **Conversational intake** — AI-driven chat guides the beneficiary through filing, one question at a time
+- **AI document extraction** — upload the death certificate and Claude pulls out the key fields instantly
+- **Identity verification** — ID upload + selfie capture UI (simulated for demo)
+- **Claim status lookup** — beneficiaries can check where their claim stands by claim number and email
 - **PWA installable** — works in the browser or installs to the home screen like a native app
 
 ### For Claims Adjusters (Web Dashboard)
 A desktop workspace where every claim arrives pre-structured, pre-analyzed, and pre-flagged — so adjusters can make decisions instead of doing data entry.
 
 - **AI risk assessment** — every claim is scored on submission: risk level, contestability status, fraud flags
-- **Contestability alerts** — automatically flagged if policy is within the 2-year window, with a recommendation to request medical records
+- **Contestability alerts** — automatically flagged if policy is within the 2-year window
 - **AI copilot** — streaming chat panel with full claim context; ask questions, get draft letters, surface policy details
+- **AI-drafted communications** — one-click generation of approval letters, denial letters, and document requests
 - **Full audit trail** — every action timestamped and logged
 
 ---
@@ -32,10 +35,15 @@ A desktop workspace where every claim arrives pre-structured, pre-analyzed, and 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    CloudFront CDN                    │
-│         (frontend + /api/* proxy to ALB)            │
-└───────────────────┬─────────────────────────────────┘
+                        ┌──────────────┐
+                        │  Route 53    │
+                        │claimpath.click│
+                        └──────┬───────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│                    CloudFront CDN                            │
+│              (ACM TLS + frontend + /api/* proxy)            │
+└───────────────────┬─────────────────────────────────────────┘
                     │
         ┌───────────┴───────────┐
         │                       │
@@ -47,24 +55,24 @@ A desktop workspace where every claim arrives pre-structured, pre-analyzed, and 
                                 │
                     ┌───────────┼───────────┐
                     │           │           │
-             ┌──────▼──┐  ┌────▼───┐  ┌────▼────┐
-             │   RDS   │  │  S3    │  │Anthropic│
-             │Postgres │  │ Docs   │  │  API    │
-             │  (15)   │  │Bucket  │  │(Claude) │
-             └─────────┘  └────────┘  └─────────┘
+             ┌──────▼──┐  ┌────▼───┐  ┌────▼─────┐
+             │   RDS   │  │  S3    │  │  AWS     │
+             │Postgres │  │ Docs   │  │ Bedrock  │
+             │  (15)   │  │Bucket  │  │(Claude)  │
+             └─────────┘  └────────┘  └──────────┘
 ```
 
-**Frontend:** React + TypeScript + Vite, PWA (installable), hosted on S3 + CloudFront
+**Frontend:** React + TypeScript + Vite, PWA, hosted on S3 + CloudFront
 
 **Backend:** FastAPI (Python), running on ECS Fargate behind an ALB
 
 **Database:** PostgreSQL 15 on RDS (SQLite for local dev)
 
-**AI:** Anthropic Claude — document extraction, risk scoring, adjuster copilot, communication drafting
+**AI:** AWS Bedrock + Claude Haiku — conversational intake, document extraction, risk scoring, adjuster copilot, communication drafting
 
 **Document Storage:** S3 (encrypted, private)
 
-**Infrastructure:** AWS CDK (TypeScript) — everything is code, one `cdk deploy` to stand up the full stack
+**Infrastructure:** AWS CDK (TypeScript) — everything is code, one `npm run deploy` to stand up the full stack
 
 ---
 
@@ -73,7 +81,7 @@ A desktop workspace where every claim arrives pre-structured, pre-analyzed, and 
 ### Prerequisites
 - Node 22+
 - Python 3.10+
-- Docker (for local Postgres)
+- AWS credentials configured (for Bedrock AI — falls back to mock responses if unavailable)
 
 ### Setup
 
@@ -83,7 +91,6 @@ npm run install:all
 
 # Set up environment
 cp backend/.env.example backend/.env
-# Edit backend/.env — add your ANTHROPIC_API_KEY
 
 # Run database migrations
 npm run db:migrate
@@ -97,8 +104,7 @@ npm run dev
 
 `npm run dev` starts the backend (port 8000) and frontend (port 5173) concurrently.
 
-Open http://localhost:5173 for the customer PWA.
-Open http://localhost:5173/adjuster for the adjuster dashboard.
+Open http://localhost:5173 — demo landing page with portal selection.
 
 ### Available Scripts
 
@@ -119,50 +125,48 @@ Open http://localhost:5173/adjuster for the adjuster dashboard.
 
 ## Deployment
 
-Infrastructure is managed with AWS CDK. One command deploys everything:
+Deployed to AWS via CDK. The full deploy script runs tests, builds, deploys infrastructure, syncs the frontend, and invalidates CloudFront:
 
 ```bash
-cd cdk && npx cdk deploy
+npm run deploy
 ```
 
 This provisions:
+- Custom domain (claimpath.click) with ACM TLS certificate
 - VPC (2 AZs)
 - ECS Fargate service (backend API)
 - RDS Postgres 15
 - S3 bucket for claim documents (encrypted)
 - S3 bucket for frontend (private, CloudFront served)
 - CloudFront distribution (frontend + /api/* proxy)
-- Secrets Manager entries for DB credentials + Anthropic API key
+- Route53 DNS records
+- Bedrock IAM permissions for Claude AI
 
-Before first deploy, create the Anthropic API key secret:
-```bash
-aws secretsmanager create-secret \
-  --name claimpath/anthropic-api-key \
-  --secret-string '{"key":"sk-ant-..."}'
-```
+No API keys required — AI access uses the AWS default credential chain via Bedrock.
 
 ---
 
 ## AI Layer
 
-Claude powers three distinct capabilities:
+Claude (via AWS Bedrock) powers four distinct capabilities:
 
-**1. Document Extraction** (on death certificate upload)
+**1. Conversational Claim Intake** (FNOL chat)
+AI-guided conversation that collects all claim information naturally — policy number, beneficiary details, death information, payout preferences — without a multi-page form.
+
+**2. Document Extraction** (on death certificate upload)
 Extracts structured data from uploaded death certificate images/PDFs: deceased name, date of death, cause of death, manner of death, certifying physician, jurisdiction, certificate number.
 
-**2. Risk Scoring** (on claim submission)
+**3. Risk Scoring** (on claim submission)
 Analyzes claim data against policy data to produce: risk level (low/medium/high), contestability alert, fraud flags, auto-triage recommendation, and a plain-English summary for the adjuster.
 
-**3. Adjuster Copilot** (streaming chat)
+**4. Adjuster Copilot** (streaming chat)
 Context-aware chat assistant pre-loaded with the full claim. Adjusters can ask questions, request document drafts, and surface policy details — all in natural language. Responses stream in real time.
 
 ---
 
 ## Project Context
 
-This prototype was built as part of a rapid prototyping exercise. The goal: research a life insurance process I wasn't deeply familiar with, understand the domain, and build something live and demonstrable over a weekend.
-
-The death benefit claims process was chosen because it's the core life insurance event, and it's remarkably painful for both sides — beneficiaries and adjusters alike. The opportunity for AI to reduce friction, speed up decisions, and surface risk automatically is obvious and high-value.
+Built by Tony Capone as a production-quality prototype demonstrating how AI can transform the life insurance claims process. Two frontends, a Python/FastAPI backend, real AWS infrastructure — with AI reasoning about real claim data. Nothing is canned.
 
 **Domain research:** `docs/research.md`
 **Full feature spec:** `docs/spec.md`

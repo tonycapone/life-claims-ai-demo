@@ -452,6 +452,20 @@
 
 ---
 
+### W-040 🔴 Mock carrier app shell — full mobile experience
+**Context:** The beneficiary experience currently drops you straight into claim filing. For the demo, it should feel like you're inside a real carrier's mobile app — login, dashboard, policy cards — and then navigate to "File a Claim" from within that context. Everything except the claim flow is static mock UI.
+**TODO:**
+- Create a fictional carrier brand (name, logo, color palette, tagline) — not USAA but that vibe
+- Generate a carrier logo/hero image (Gemini CLI or similar)
+- Mock login screen (email + password + biometric icon, carrier-branded)
+- Mock home dashboard: "Welcome back, Tony" + policy card (Term Life $500K, active) + quick actions (File a Claim, Make a Payment, Documents, Contact Us) + recent activity feed
+- Mock policy detail screen (coverage summary, beneficiaries, payment history)
+- "File a Claim" button navigates to real FNOL chat
+- All other buttons are static / show "Coming soon" toast or just look tappable
+- Integrate with W-039 white-label theming — carrier brand defined in config
+
+---
+
 ### W-026 ✅ scripts/ directory missing
 **Context:** Tasker has a `scripts/` dir with useful utilities: `db.sh` (prod DB access), `deploy.sh`, `logs.sh`, etc.
 **TODO:**
