@@ -466,6 +466,92 @@
 
 ---
 
+### W-041 🔴 Regulatory timeline card on adjuster claim detail
+**Context:** The COO review flagged regulatory completeness at 2/10 — no state-specific timing requirements tracked. Even as a demo, a claims professional expects to see deadlines. This is a quick win that dramatically increases operational credibility.
+**TODO:**
+- Add a "Regulatory Timeline" card to AdjusterClaimDetail showing state-specific deadlines
+- Calculate deadlines based on claim filing date + state rules (hardcode a few key states: CA 15-day ack / 40-day decision, NY 15 business days, TX 60 days)
+- Show status (on track / approaching / overdue) with color coding
+- Include a "State" field on claims (derive from jurisdiction or beneficiary address)
+- This is the single cheapest way to raise the COO's "would I pilot this" score
+
+---
+
+### W-042 🔴 Medical records vs. application comparison (contestability analysis)
+**Context:** All three executive reviewers independently identified this as THE killer feature. The COO: "That is not a 15-minute time savings, that is a 2-day time savings per contestability claim. That alone justifies the entire platform." This is W-036 from the existing backlog, elevated to top priority.
+**TODO:**
+- Create synthetic insurance application PDF for John Michael Smith (yes/no health questionnaire)
+- Create synthetic medical records (3-4 pages of doctor visits, prescriptions, lab results)
+- Plant 2-3 deliberate discrepancies (e.g., "No" to heart disease on application but AFib diagnosis in records)
+- Add `analyze_contestability(application, medical_records)` to ai.py
+- Returns structured discrepancy table: question, applicant answer, medical record finding, assessment
+- Add "Run Contestability Analysis" button on adjuster detail for contestable claims
+- Display discrepancy report as a structured card
+- This single feature shifts the conversation from "nice demo" to "when can we pilot this"
+
+---
+
+### W-043 🟡 OFAC / sanctions screening (mocked)
+**Context:** OFAC screening is a federal requirement before any death benefit payout. All reviewers flagged its absence. Even a mock check adds credibility.
+**TODO:**
+- Add mock OFAC check that runs automatically on claim submission
+- Show "OFAC Screening: Clear" badge on adjuster claim detail (green checkmark)
+- For one seed claim, show a simulated "OFAC Alert" to demonstrate the system catches it
+- Add to risk scoring — OFAC hit = automatic high risk + SIU referral
+
+---
+
+### W-044 🟡 State-specific claim acknowledgment letter
+**Context:** AI-drafted communications currently use generic language. Real carriers must include state-specific disclosures and timing commitments. Even showing one state-aware letter dramatically increases operational credibility.
+**TODO:**
+- Update communication drafting to accept a `state` parameter
+- For California claims: include "You will receive a decision within 40 calendar days" per CA Insurance Code §10112.95
+- For New York: include specific disclosure language per NY Insurance Law §3214
+- Add state to claim data (derive from beneficiary address or jurisdiction)
+- The copilot should know state requirements when asked "What are the timing requirements?"
+
+---
+
+### W-045 🟡 Multi-beneficiary awareness in FNOL chat
+**Context:** The COO called multi-beneficiary coordination "the hard problem nobody demos." We don't need full orchestration, but the chat should at least acknowledge other beneficiaries exist and handle it gracefully.
+**TODO:**
+- After policy lookup, if multiple beneficiaries exist, show them in the policy card
+- AI should acknowledge: "I see this policy has two beneficiaries — Carlos (60%) and Isabella (40%). I'll help you file for Carlos's portion today."
+- Track which beneficiary is filing in the claim
+- On adjuster side, show "1 of 2 beneficiaries filed" indicator
+- This doesn't need full payout orchestration — just awareness
+
+---
+
+### W-046 🟡 Adjuster claim assignment engine
+**Context:** New claims arrive unassigned. The COO flagged that real claims orgs use round-robin or workload-based assignment. Having claims sit unassigned looks unrealistic.
+**TODO:**
+- Auto-assign new claims to an adjuster on submission (round-robin across active adjusters)
+- Show assignment on claim detail and in queue
+- Allow manual reassignment from the claim detail page
+- Filter queue by "My Claims" vs "All Claims"
+
+---
+
+### W-047 🟢 Copilot state-awareness (regulatory questions)
+**Context:** The copilot should be able to answer "What are the state timing requirements for this claim?" and "What documents do I still need?" — questions a real adjuster asks constantly.
+**TODO:**
+- Inject state regulatory data into copilot system prompt
+- Inject document checklist status (death cert: received, medical records: not requested, etc.)
+- Copilot can answer: "This is a California claim — you have 40 days from proof of loss to make a decision. You're on day 5."
+- Copilot can answer: "You still need: attending physician's statement, claimant's statement under oath"
+
+---
+
+### W-048 🟢 Beneficiary policy lookup without policy number
+**Context:** The COO noted 30-40% of beneficiaries don't know the policy number. The backend already supports lookup by name + DOB + SSN last 4, but the FNOL chat only uses policy number.
+**TODO:**
+- Update FNOL chat to accept alternative lookup: "I don't have the policy number but his name was John Smith, born April 15 1968"
+- Backend already has the lookup endpoint — just need to wire it into the chat flow
+- Show matching policies if multiple found
+
+---
+
 ### W-026 ✅ scripts/ directory missing
 **Context:** Tasker has a `scripts/` dir with useful utilities: `db.sh` (prod DB access), `deploy.sh`, `logs.sh`, etc.
 **TODO:**
