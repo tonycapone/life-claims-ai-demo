@@ -47,3 +47,21 @@ export interface LoginResponse {
   token_type: string
   adjuster: AdjusterUser
 }
+
+export type DeadlineStatus = 'on_track' | 'approaching' | 'overdue' | 'completed'
+
+export interface RegulatoryDeadline {
+  name: string
+  due_date: string
+  days_remaining: number
+  status: DeadlineStatus
+  day_type: 'calendar' | 'business'
+  day_count: number
+}
+
+export interface RegulatoryTimeline {
+  state: string
+  state_name: string
+  deadlines: RegulatoryDeadline[]
+  statute_reference: string
+}

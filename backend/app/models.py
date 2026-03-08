@@ -34,6 +34,8 @@ class Policy(Base):
     policy_type = Column(Enum(PolicyType), nullable=False)
     status = Column(Enum(PolicyStatus), default=PolicyStatus.IN_FORCE)
     beneficiaries = Column(JSON)               # [{name, relationship, percentage}]
+    application_url = Column(String)           # path to insurance application PDF
+    medical_records_url = Column(String)       # path to medical records PDF
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -108,6 +110,12 @@ class Claim(Base):
     contestability_alert = Column(Boolean, default=False)
     months_since_issue = Column(Float)
     ai_summary = Column(Text)
+
+    # Contestability analysis
+    contestability_analysis = Column(JSON)  # result of AI contestability comparison
+
+    # Jurisdiction
+    jurisdiction_state = Column(String)  # e.g. "IL", "CA", "NY"
 
     # Adjuster
     assigned_adjuster = Column(String)

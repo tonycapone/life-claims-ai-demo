@@ -466,7 +466,7 @@
 
 ---
 
-### W-041 🔴 Regulatory timeline card on adjuster claim detail
+### W-041 ✅ Regulatory timeline card on adjuster claim detail
 **Context:** The COO review flagged regulatory completeness at 2/10 — no state-specific timing requirements tracked. Even as a demo, a claims professional expects to see deadlines. This is a quick win that dramatically increases operational credibility.
 **TODO:**
 - Add a "Regulatory Timeline" card to AdjusterClaimDetail showing state-specific deadlines

@@ -5,7 +5,7 @@ Idempotent — safe to re-run.
 """
 import sys
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -52,6 +52,8 @@ def seed():
                 "beneficiaries": [
                     {"name": "Sarah Smith", "relationship": "Spouse", "percentage": 100}
                 ],
+                "application_url": "demo/application-smith.pdf",
+                "medical_records_url": "demo/medical-records-smith.pdf",
             },
             {
                 "policy_number": "LT-18823",
@@ -111,8 +113,15 @@ def seed():
         ]
 
         for p in policies:
-            if not db.query(Policy).filter_by(policy_number=p["policy_number"]).first():
+            existing = db.query(Policy).filter_by(policy_number=p["policy_number"]).first()
+            if not existing:
                 db.add(Policy(**p))
+            else:
+                # Update document URLs on existing policies (e.g. after adding contestability docs)
+                if p.get("application_url") and not existing.application_url:
+                    existing.application_url = p["application_url"]
+                if p.get("medical_records_url") and not existing.medical_records_url:
+                    existing.medical_records_url = p["medical_records_url"]
         db.commit()
         print("✅ Policies seeded")
 
@@ -145,6 +154,7 @@ def seed():
                 "risk_flags": [],
                 "ai_summary": "Standard death benefit claim for Maria Garcia. Policy is 4 years old — outside contestability period. Cause of death (pancreatic cancer) is a covered natural cause. Identity verified. Recommend fast-track processing.",
                 "assigned_adjuster": "rthompson",
+                "jurisdiction_state": "IL",
             },
             {
                 "id": "claim-003",
@@ -170,6 +180,7 @@ def seed():
                 ],
                 "ai_summary": "High-risk claim. Final expense policy purchased 5 months ago, insured died in an accident with unknown cause. Multiple red flags present. Recommend SIU review before any further processing.",
                 "assigned_adjuster": None,
+                "jurisdiction_state": "IL",
             },
             {
                 "id": "claim-004",
@@ -192,12 +203,31 @@ def seed():
                 "ai_summary": "Clean claim. Policy 3 years old, natural cause of death, identity verified, all documents in order. Approved.",
                 "assigned_adjuster": "apatel",
                 "payout_method": "lump_sum",
+                "jurisdiction_state": "CA",
             },
         ]
 
         for c in claims:
             if not db.query(Claim).filter_by(claim_number=c["claim_number"]).first():
                 db.add(Claim(**c))
+        db.commit()
+
+        # ── Backdate created_at for realistic regulatory timelines ────────
+        # Garcia: filed 26 days ago → IL decision approaching (~4 days left)
+        garcia = db.query(Claim).filter_by(claim_number="CLM-2026-00135").first()
+        if garcia:
+            garcia.created_at = datetime.now(timezone.utc) - timedelta(days=26)
+
+        # Johnson: filed 1 day ago → everything on track (green)
+        johnson = db.query(Claim).filter_by(claim_number="CLM-2026-00140").first()
+        if johnson:
+            johnson.created_at = datetime.now(timezone.utc) - timedelta(days=1)
+
+        # Chen: filed 12 days ago → CA ack approaching (3 days left), approved
+        chen = db.query(Claim).filter_by(claim_number="CLM-2026-00129").first()
+        if chen:
+            chen.created_at = datetime.now(timezone.utc) - timedelta(days=12)
+
         db.commit()
         print("✅ Claims seeded")
         print("\n🎉 Seed complete! Ready to demo.")

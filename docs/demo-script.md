@@ -299,9 +299,17 @@ Plus a **Communications** section with three draft buttons.
    - **Risk flags** -- bullet list of specific concerns identified by the AI
    - **Recommendation** -- e.g., "contestability review"
 
-6. **AI Copilot Panel** -- a chat interface for the adjuster to ask questions about the claim
+6. **Regulatory Timeline Card** -- state-specific compliance deadlines:
+   - Shows the claim's jurisdiction (e.g., "Illinois") and statute reference
+   - Two deadline bars: Acknowledgment and Decision
+   - Each shows due date, days remaining, and color-coded status (green = on track, yellow = approaching, red = overdue)
+   - Status is calculated automatically from the claim filing date and state-specific rules
+
+7. **AI Copilot Panel** -- a chat interface for the adjuster to ask questions about the claim
 
 > "Look at the risk assessment card. This isn't a template -- the AI wrote this summary by analyzing the actual claim data. It caught that the policy is 14 months old, inside the 2-year contestability window. It noted the cause of death and whether it aligns with the original application. Different claims produce completely different assessments."
+
+> "And notice the regulatory timeline below it -- the system automatically tracks state-specific deadlines. This is an Illinois claim, so we have 15 business days to acknowledge and 30 days to decide per 215 ILCS 5/154.6. The deadlines are calculated from the filing date and the system knows whether we're on track, approaching a deadline, or overdue. Go look at the Linda Chen claim later -- that's a California claim, different statute, different rules, all handled automatically."
 
 ### Step 3.6: Demonstrate the AI Copilot
 

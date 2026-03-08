@@ -57,6 +57,7 @@ export interface Claim {
   contestability_alert: boolean
   months_since_issue?: number
   ai_summary?: string
+  jurisdiction_state?: string
   assigned_adjuster?: string
   adjuster_notes?: string
   created_at: string

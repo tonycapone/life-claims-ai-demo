@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useClaimDetail, useDraftCommunication } from '../../hooks/useAdjuster'
 import { StatusBadge } from '../../components/StatusBadge'
 import RiskCard from '../../components/adjuster/RiskCard'
+import RegulatoryCard from '../../components/adjuster/RegulatoryCard'
 import CopilotPanel from '../../components/adjuster/CopilotPanel'
 import ActionModal from '../../components/adjuster/ActionModal'
 import { useAdjusterAuth } from '../../contexts/AdjusterContext'
@@ -125,6 +126,7 @@ export default function AdjusterClaimDetail() {
               flags={claim.risk_flags}
               summary={claim.ai_summary}
             />
+            <RegulatoryCard claimId={claim.id} />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
               <CopilotPanel claimId={claim.id} />
             </div>
