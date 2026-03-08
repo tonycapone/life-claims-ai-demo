@@ -33,6 +33,22 @@ export interface DeathCertificateExtraction {
   certificate_number?: string
 }
 
+export interface ContestabilityDiscrepancy {
+  application_question: string
+  applicant_answer: string
+  medical_finding: string
+  source_date: string
+  severity: 'material' | 'minor'
+  assessment: string
+}
+
+export interface ContestabilityAnalysis {
+  discrepancies: ContestabilityDiscrepancy[]
+  summary: string
+  recommendation: string
+  materiality_assessment: string
+}
+
 export interface Claim {
   id: string
   claim_number: string
@@ -55,6 +71,7 @@ export interface Claim {
   risk_level?: RiskLevel
   risk_flags?: string[]
   contestability_alert: boolean
+  contestability_analysis?: ContestabilityAnalysis | null
   months_since_issue?: number
   ai_summary?: string
   jurisdiction_state?: string

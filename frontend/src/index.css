@@ -2343,3 +2343,353 @@ p:last-child { margin-bottom: 0; }
   color: var(--carrier-accent);
   font-weight: 500;
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   Contestability Analysis — The Demo Wow Moment
+   Professional forensic-style report for application vs.
+   medical records comparison
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Run Analysis Card (pre-analysis state) ────────────── */
+.contestability-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  border-left: 4px solid var(--color-warning);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.25rem;
+}
+
+.contestability-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.contestability-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contestability-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.contestability-card__subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  margin: 0.125rem 0 0;
+}
+
+.contestability-card__description {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.contestability-card__run-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  background: linear-gradient(135deg, #1a2744 0%, #2a4060 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.contestability-card__run-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0f1d33 0%, #1a3050 100%);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.contestability-card__run-btn:disabled {
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.contestability-card__error {
+  font-size: 0.8125rem;
+  color: var(--color-danger);
+  margin-top: 0.75rem;
+}
+
+
+/* ── Full Analysis Report ──────────────────────────────── */
+.contestability-report {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-danger);
+  box-shadow: var(--shadow-md);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.contestability-report__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
+  border-bottom: 1px solid rgba(220, 38, 38, 0.1);
+}
+
+.contestability-report__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.contestability-report__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contestability-report__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.contestability-report__subtitle {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin: 0.125rem 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.contestability-report__badges {
+  display: flex;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+
+/* ── Badges ────────────────────────────────────────────── */
+.contestability-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.contestability-badge--material {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.contestability-badge--minor {
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.contestability-badge--rec-contestability_review {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.contestability-badge--rec-standard_review {
+  background: rgba(22, 163, 74, 0.1);
+  color: #15803d;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+
+/* ── Summary ───────────────────────────────────────────── */
+.contestability-report__summary {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.contestability-report__summary p {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text);
+  margin: 0;
+}
+
+
+/* ── Discrepancies ─────────────────────────────────────── */
+.contestability-report__discrepancies {
+  padding: 1.25rem 1.5rem;
+}
+
+.contestability-report__section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin-bottom: 0.875rem;
+}
+
+.contestability-discrepancy {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.contestability-discrepancy:last-child {
+  margin-bottom: 0;
+}
+
+.contestability-discrepancy__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.contestability-discrepancy__number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.contestability-discrepancy__grid {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.contestability-discrepancy__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contestability-discrepancy__field--full {
+  grid-column: 1 / -1;
+}
+
+.contestability-discrepancy__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.contestability-discrepancy__date {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-accent);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.contestability-discrepancy__value {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.contestability-discrepancy__answer--false {
+  color: var(--color-danger);
+  font-weight: 700;
+  padding: 0.25rem 0.625rem;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  width: fit-content;
+}
+
+.contestability-discrepancy__finding {
+  padding: 0.625rem 0.875rem;
+  background: rgba(37, 99, 235, 0.04);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.contestability-discrepancy__assessment {
+  padding: 0.625rem 0.875rem;
+  background: rgba(220, 38, 38, 0.03);
+  border-left: 3px solid var(--color-danger);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+}
+
+
+/* ── Materiality ───────────────────────────────────────── */
+.contestability-report__materiality {
+  padding: 1rem 1.5rem;
+  margin: 0 1.5rem 1.25rem;
+  background: rgba(220, 38, 38, 0.04);
+  border: 1px solid rgba(220, 38, 38, 0.12);
+  border-radius: var(--radius-sm);
+}
+
+.contestability-report__materiality p {
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: var(--color-text);
+  margin: 0;
+}
+
+
+/* ── Recommendation ────────────────────────────────────── */
+.contestability-report__recommendation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-top: 1px solid var(--color-border);
+}
+
+.contestability-report__rec-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}

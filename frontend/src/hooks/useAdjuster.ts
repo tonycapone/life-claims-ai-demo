@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import api from '../utils/api'
 import type { ClaimQueueItem, LoginResponse, AdjusterAction, CommunicationDraft } from '../types/adjuster'
-import type { Claim } from '../types/claim'
+import type { Claim, ContestabilityAnalysis } from '../types/claim'
 
 export function useAdjusterLogin() {
   const [loading, setLoading] = useState(false)
@@ -56,4 +56,20 @@ export function useDraftCommunication() {
     catch { return null } finally { setLoading(false) }
   }
   return { draft, loading }
+}
+
+export function useContestabilityAnalysis() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const analyze = async (claimId: string): Promise<ContestabilityAnalysis | null> => {
+    setLoading(true); setError(null)
+    try {
+      const { data } = await api.post(`/adjuster/claims/${claimId}/contestability`)
+      return data
+    } catch (e: any) {
+      setError(e.response?.data?.detail || 'Contestability analysis failed')
+      return null
+    } finally { setLoading(false) }
+  }
+  return { analyze, loading, error }
 }

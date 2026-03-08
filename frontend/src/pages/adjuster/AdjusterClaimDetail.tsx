@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useClaimDetail, useDraftCommunication } from '../../hooks/useAdjuster'
 import { StatusBadge } from '../../components/StatusBadge'
 import RiskCard from '../../components/adjuster/RiskCard'
+import ContestabilityReport from '../../components/adjuster/ContestabilityReport'
 import RegulatoryCard from '../../components/adjuster/RegulatoryCard'
 import CopilotPanel from '../../components/adjuster/CopilotPanel'
 import ActionModal from '../../components/adjuster/ActionModal'
@@ -125,6 +126,12 @@ export default function AdjusterClaimDetail() {
               monthsSinceIssue={claim.months_since_issue}
               flags={claim.risk_flags}
               summary={claim.ai_summary}
+            />
+            <ContestabilityReport
+              claimId={claim.id}
+              contestabilityAlert={claim.contestability_alert}
+              existingAnalysis={claim.contestability_analysis}
+              onAnalysisComplete={() => fetchClaim(claim.id)}
             />
             <RegulatoryCard claimId={claim.id} />
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
