@@ -67,7 +67,7 @@ export interface FNOLMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
-  widget?: 'policy_confirm' | 'review'
+  widget?: 'policy_confirm' | 'review' | 'upload_cert'
 }
 
 // Draft claim state stored in ClaimContext across multi-step form
@@ -92,5 +92,8 @@ export interface ClaimDraft {
   claim_number?: string
   current_step?: number
   policy_verified?: boolean
+  death_certificate_uploaded?: boolean
+  death_certificate_skipped?: boolean
+  death_certificate_extracted?: DeathCertificateExtraction
   chat_messages?: FNOLMessage[]
 }

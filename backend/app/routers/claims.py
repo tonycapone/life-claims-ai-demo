@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 from app.database import get_db
 from app.models import Policy, Claim, ClaimStatus
-from app.ai import extract_document, score_risk, extract_fnol_fields, stream_fnol_chat, FNOL_REQUIRED_FIELDS, _missing_fields
+from app.ai import extract_document, score_risk, extract_fnol_fields, stream_fnol_chat, should_request_death_cert, FNOL_REQUIRED_FIELDS, _missing_fields
 
 router = APIRouter()
 
@@ -179,7 +179,10 @@ def fnol_chat(req: FNOLChatRequest, db: Session = Depends(get_db)):
     # 5. Check if all required fields collected
     all_collected = len(_missing_fields(draft)) == 0
 
-    # 6. Build SSE stream
+    # 6. Check if we should prompt for death certificate upload
+    request_death_cert = should_request_death_cert(draft)
+
+    # 7. Build SSE stream
     # Convert messages to simple dicts for AI
     chat_msgs = [{"role": m.role, "content": m.content} for m in req.messages]
     # Limit to last 20 messages
@@ -202,6 +205,10 @@ def fnol_chat(req: FNOLChatRequest, db: Session = Depends(get_db)):
         # Send show_review action if all fields collected
         if all_collected:
             yield f"data: {json.dumps({'type': 'action', 'action': 'show_review'})}\n\n"
+
+        # Send upload_death_cert action when it's time
+        if request_death_cert:
+            yield f"data: {json.dumps({'type': 'action', 'action': 'upload_death_cert'})}\n\n"
 
         # Stream conversational response
         for chunk in stream_fnol_chat(chat_msgs, draft):
@@ -316,9 +323,27 @@ async def upload_document(claim_id: str, file: UploadFile = File(...), db: Sessi
 
     claim.death_certificate_url = save_path
     claim.death_certificate_extracted = extracted
+
+    # Auto-populate claim fields from extracted data
+    field_mapping = {
+        "date_of_death": "date_of_death",
+        "cause_of_death": "cause_of_death",
+        "manner_of_death": "manner_of_death",
+    }
+    auto_populated = {}
+    for extract_key, claim_field in field_mapping.items():
+        value = extracted.get(extract_key)
+        if value and not getattr(claim, claim_field, None):
+            setattr(claim, claim_field, value)
+            auto_populated[claim_field] = value
+
     db.commit()
 
-    return {"extracted": extracted, "filename": file.filename}
+    return {
+        "extracted": extracted,
+        "filename": file.filename,
+        "auto_populated": auto_populated,
+    }
 
 
 @router.post("/{claim_id}/verify")

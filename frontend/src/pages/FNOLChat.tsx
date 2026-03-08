@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClaim } from '../contexts/ClaimContext'
-import type { FNOLMessage } from '../types/claim'
+import type { FNOLMessage, DeathCertificateExtraction } from '../types/claim'
 
 const FNOL_REQUIRED = [
   'policy_number', 'beneficiary_name', 'beneficiary_email',
@@ -21,6 +21,16 @@ const FIELD_LABELS: Record<string, string> = {
   payout_method: 'Payout preference',
 }
 
+const EXTRACTION_FIELDS: [keyof DeathCertificateExtraction, string][] = [
+  ['deceased_name', 'Deceased Name'],
+  ['date_of_death', 'Date of Death'],
+  ['cause_of_death', 'Cause of Death'],
+  ['manner_of_death', 'Manner of Death'],
+  ['certifying_physician', 'Certifying Physician'],
+  ['jurisdiction', 'Jurisdiction'],
+  ['certificate_number', 'Certificate #'],
+]
+
 const GREETING: FNOLMessage = {
   role: 'assistant',
   content: "I'm so sorry for your loss. I'm here to help you file a death benefit claim — I'll walk you through it step by step. Let's start with your policy number. It usually looks like LT-XXXXX and can be found on your policy documents.",
@@ -39,8 +49,18 @@ export default function FNOLChat() {
   const [showReview, setShowReview] = useState(false)
   const [certified, setCertified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  // Death certificate upload state
+  const [showUploadWidget, setShowUploadWidget] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [extractedData, setExtractedData] = useState<DeathCertificateExtraction | null>(null)
+  const [dragover, setDragover] = useState(false)
+  const [uploadFileName, setUploadFileName] = useState('')
+
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Persist messages to draft
   useEffect(() => {
@@ -50,7 +70,7 @@ export default function FNOLChat() {
   // Auto-scroll
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, policyData, showReview])
+  }, [messages, policyData, showReview, showUploadWidget, extractedData, uploading])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || streaming) return
@@ -114,6 +134,11 @@ export default function FNOLChat() {
               })
             } else if (event.type === 'action' && event.action === 'show_review') {
               setShowReview(true)
+            } else if (event.type === 'action' && event.action === 'upload_death_cert') {
+              setShowUploadWidget(true)
+              setExtractedData(null)
+              setUploadFileName('')
+              setUploadError(null)
             }
           } catch {
             // skip malformed events
@@ -135,6 +160,73 @@ export default function FNOLChat() {
       inputRef.current?.focus()
     }
   }, [streaming, messages, draft, setDraft])
+
+  const handleUploadFile = useCallback(async (file: File) => {
+    if (!draft.claim_id) {
+      setUploadError('Claim must be created first. Please provide your beneficiary information.')
+      return
+    }
+
+    setUploadFileName(file.name)
+    setUploading(true)
+    setUploadError(null)
+
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const response = await fetch(`/api/claims/${draft.claim_id}/documents`, {
+        method: 'POST',
+        body: form,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const result = await response.json()
+      const extracted = result.extracted as DeathCertificateExtraction
+
+      setExtractedData(extracted)
+      setDraft({
+        death_certificate_uploaded: true,
+        death_certificate_extracted: extracted,
+        ...(extracted.date_of_death && { date_of_death: extracted.date_of_death }),
+        ...(extracted.cause_of_death && { cause_of_death: extracted.cause_of_death }),
+        ...(extracted.manner_of_death && { manner_of_death: extracted.manner_of_death }),
+      })
+    } catch (e) {
+      console.error('Upload error:', e)
+      setUploadError('Upload failed. Please try again or skip this step.')
+    } finally {
+      setUploading(false)
+    }
+  }, [draft.claim_id, setDraft])
+
+  const handleUploadConfirm = () => {
+    setShowUploadWidget(false)
+    const extracted = extractedData
+    if (extracted) {
+      const parts: string[] = []
+      if (extracted.deceased_name) parts.push(`Deceased: ${extracted.deceased_name}`)
+      if (extracted.date_of_death) parts.push(`Date: ${extracted.date_of_death}`)
+      if (extracted.cause_of_death) parts.push(`Cause: ${extracted.cause_of_death}`)
+      const summary = parts.length > 0 ? parts.join(', ') : 'Certificate uploaded'
+      sendMessage(`I've uploaded the death certificate. ${summary}`)
+    }
+  }
+
+  const handleUploadSkip = () => {
+    setShowUploadWidget(false)
+    setDraft({ death_certificate_skipped: true })
+    sendMessage("I don't have the death certificate right now.")
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragover(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleUploadFile(file)
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -223,6 +315,118 @@ export default function FNOLChat() {
           </div>
         )}
 
+        {/* Death certificate upload widget */}
+        {showUploadWidget && !extractedData && (
+          <div className="fnol-upload-card">
+            <div className="fnol-upload-card__header">
+              <span className="fnol-upload-card__icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+              </span>
+              <span className="fnol-upload-card__title">Upload Death Certificate</span>
+            </div>
+            {!uploading ? (
+              <>
+                <div
+                  className={`fnol-upload-zone ${dragover ? 'fnol-upload-zone--dragover' : ''}`}
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); setDragover(true) }}
+                  onDragLeave={() => setDragover(false)}
+                  onDrop={onDrop}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    style={{ display: 'none' }}
+                    onChange={e => {
+                      const f = e.target.files?.[0]
+                      if (f) handleUploadFile(f)
+                    }}
+                  />
+                  <div className="fnol-upload-zone__content">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)', marginBottom: '0.5rem' }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p className="fnol-upload-zone__label">Tap to upload or drag and drop</p>
+                    <p className="fnol-upload-zone__hint">PDF, JPG, or PNG</p>
+                  </div>
+                </div>
+                {uploadError && (
+                  <p className="fnol-upload-card__error">{uploadError}</p>
+                )}
+                <button
+                  className="btn btn-ghost btn--sm fnol-upload-card__skip"
+                  onClick={handleUploadSkip}
+                >
+                  I don't have it right now
+                </button>
+              </>
+            ) : (
+              <div className="fnol-upload-processing">
+                <span className="spinner" style={{ width: 24, height: 24, borderWidth: 2.5 }} />
+                <div>
+                  <p className="fnol-upload-processing__label">Analyzing document...</p>
+                  <p className="fnol-upload-processing__file">{uploadFileName}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Death certificate extraction confirmation card */}
+        {showUploadWidget && extractedData && (
+          <div className="fnol-extraction-card">
+            <div className="fnol-extraction-card__header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span className="fnol-extraction-card__title">Certificate processed</span>
+            </div>
+            <div className="extraction-card">
+              {EXTRACTION_FIELDS.map(([key, label]) => {
+                const value = extractedData[key]
+                if (!value) return null
+                return (
+                  <div key={key} className="extraction-row">
+                    <span className="extraction-label">{label}</span>
+                    <span className="extraction-value">{value}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="fnol-extraction-card__actions">
+              <button className="btn btn-primary btn--sm" onClick={handleUploadConfirm}>
+                Looks correct — continue
+              </button>
+              <button
+                className="btn btn-ghost btn--sm"
+                onClick={() => {
+                  setExtractedData(null)
+                  setUploadFileName('')
+                  setUploadError(null)
+                  setDraft({
+                    death_certificate_uploaded: false,
+                    death_certificate_extracted: undefined,
+                    date_of_death: undefined,
+                    cause_of_death: undefined,
+                    manner_of_death: undefined,
+                  } as any)
+                }}
+              >
+                Re-upload
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Review card */}
         {showReview && draft.claim_id && (
           <div className="fnol-review-card">
@@ -252,7 +456,7 @@ export default function FNOLChat() {
               disabled={!certified || submitting}
               onClick={handleSubmit}
             >
-              {submitting ? 'Submitting…' : 'Submit Claim'}
+              {submitting ? 'Submitting...' : 'Submit Claim'}
             </button>
           </div>
         )}
@@ -265,7 +469,7 @@ export default function FNOLChat() {
         <textarea
           ref={inputRef}
           className="chat-input"
-          placeholder="Type your message…"
+          placeholder="Type your message..."
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

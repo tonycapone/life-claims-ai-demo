@@ -256,6 +256,15 @@ def _missing_fields(draft: dict) -> list[str]:
 
 def extract_fnol_fields(user_message: str, draft: dict) -> dict:
     """Extract structured claim fields from a user message via non-streaming call."""
+    # Detect if user wants to skip death certificate upload
+    skip_phrases = ["don't have", "dont have", "skip", "don't have it", "no certificate",
+                    "i'll provide later", "not right now", "no i don't", "i can't",
+                    "later", "not available"]
+    if should_request_death_cert(draft):
+        msg_lower = user_message.lower().strip()
+        if any(phrase in msg_lower for phrase in skip_phrases):
+            return {"death_certificate_skipped": True}
+
     missing = _missing_fields(draft)
     if not missing:
         return {}
@@ -294,6 +303,25 @@ Only extract fields that are still needed. Return valid JSON only, no markdown."
     return {}
 
 
+def should_request_death_cert(draft: dict) -> bool:
+    """Check if it's time to ask for death certificate upload.
+
+    We ask after beneficiary info is collected but before death details,
+    unless the user already uploaded or skipped.
+    """
+    has_beneficiary = all(
+        draft.get(f)
+        for f in ["policy_number", "beneficiary_name", "beneficiary_relationship"]
+    )
+    has_death_info = any(
+        draft.get(f)
+        for f in ["date_of_death", "cause_of_death", "manner_of_death"]
+    )
+    already_uploaded = draft.get("death_certificate_uploaded")
+    already_skipped = draft.get("death_certificate_skipped")
+    return has_beneficiary and not has_death_info and not already_uploaded and not already_skipped
+
+
 def stream_fnol_chat(messages: list[dict], draft: dict) -> Generator[str, None, None]:
     """Stream conversational FNOL response as text chunks."""
     collected = _collected_fields(draft)
@@ -304,13 +332,18 @@ def stream_fnol_chat(messages: list[dict], draft: dict) -> Generator[str, None, 
 Current draft state:
 - Collected: {json.dumps({f: draft[f] for f in collected}) if collected else "nothing yet"}
 - Still needed: {json.dumps(missing) if missing else "ALL FIELDS COLLECTED"}
+- Death certificate uploaded: {"yes" if draft.get("death_certificate_uploaded") else "no"}
+- Death certificate skipped: {"yes" if draft.get("death_certificate_skipped") else "no"}
 
 Guidelines:
 - Be warm, empathetic, and professional — the user is grieving
 - Keep responses to 2-4 sentences
 - Ask for at most 2-3 pieces of information at a time
-- Guide through this order: policy number → beneficiary info → death details → payout preference
+- Guide through this order: policy number → beneficiary info (name, email, phone, relationship) → death certificate upload → death details (if not extracted from certificate) → payout preference
 - If policy_number just collected, acknowledge it and ask for beneficiary name and relationship
+- After beneficiary info is collected and death certificate has NOT been uploaded yet, ask the user to upload a death certificate. Say something like "If you have a copy of the death certificate, you can upload it now and I'll extract the details automatically."
+- If the user uploaded a death certificate and fields were extracted, acknowledge what was extracted and move on to payout preference
+- If the user says they don't have the death certificate or wants to skip, that's fine — ask for date of death, cause, and manner manually
 - If all fields collected, congratulate them and say you'll show a review summary
 - Never ask for information already collected
 - Use natural language, not field names"""
@@ -346,6 +379,8 @@ Guidelines:
         mock = "I'm here to help you file a claim. Could you start by sharing your policy number? It usually looks like LT-XXXXX."
     elif "policy_number" in collected and "beneficiary_name" not in collected:
         mock = f"Thank you. I've found the policy. Could you tell me your full name and your relationship to the policyholder?"
+    elif "beneficiary_name" in collected and "beneficiary_relationship" in collected and not draft.get("death_certificate_uploaded") and not draft.get("death_certificate_skipped") and "date_of_death" not in collected:
+        mock = f"Thank you, {draft.get('beneficiary_name', '')}. If you have a copy of the death certificate, you can upload it now and I'll extract the details automatically. This helps speed things up."
     elif "beneficiary_name" in collected and "date_of_death" not in collected:
         mock = f"Thank you, {draft.get('beneficiary_name', '')}. I'm sorry for your loss. Could you share the date of death and the cause? I know this is difficult."
     elif "date_of_death" in collected and "payout_method" not in collected:
