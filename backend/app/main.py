@@ -9,7 +9,7 @@ app = FastAPI(title="ClaimPath API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://*.cloudfront.net"],
+    allow_origins=["http://localhost:5173", "https://claimpath.click"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
