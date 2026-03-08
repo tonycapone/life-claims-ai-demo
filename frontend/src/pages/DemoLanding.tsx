@@ -115,7 +115,7 @@ export default function DemoLanding() {
         </div>
 
         <div className="demo-landing__footer">
-          Built by Tony Capone
+          ClaimPath Demo
         </div>
       </div>
     </div>

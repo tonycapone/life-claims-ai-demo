@@ -166,7 +166,7 @@ Context-aware chat assistant pre-loaded with the full claim. Adjusters can ask q
 
 ## Project Context
 
-Built by Tony Capone as a production-quality prototype demonstrating how AI can transform the life insurance claims process. Two frontends, a Python/FastAPI backend, real AWS infrastructure — with AI reasoning about real claim data. Nothing is canned.
+A production-quality prototype demonstrating how AI can transform the life insurance claims process. Two frontends, a Python/FastAPI backend, real AWS infrastructure — with AI reasoning about real claim data. Nothing is canned.
 
 **Domain research:** `docs/research.md`
 **Full feature spec:** `docs/spec.md`
