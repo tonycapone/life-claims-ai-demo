@@ -48,7 +48,7 @@ export default function AdjusterLogin() {
 
         <div style={{ marginTop: '1.5rem', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', color: 'var(--color-muted)' }}>
           <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Demo Credentials</strong>
-          Username: <code>jmartinez</code> &middot; Password: <code>demo1234</code>
+          Username: <code>jmartinez</code> &middot; Password: <code>password123</code>
         </div>
       </div>
     </div>

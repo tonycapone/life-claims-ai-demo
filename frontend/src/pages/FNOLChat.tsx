@@ -29,7 +29,7 @@ const GREETING: FNOLMessage = {
 
 export default function FNOLChat() {
   const navigate = useNavigate()
-  const { draft, setDraft, clearDraft } = useClaim()
+  const { draft, setDraft } = useClaim()
   const [messages, setMessages] = useState<FNOLMessage[]>(() => {
     return draft.chat_messages?.length ? draft.chat_messages : [GREETING]
   })
@@ -41,8 +41,6 @@ export default function FNOLChat() {
   const [submitting, setSubmitting] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-
-  const collectedCount = FNOL_REQUIRED.filter(f => draft[f as keyof typeof draft]).length
 
   // Persist messages to draft
   useEffect(() => {
@@ -178,7 +176,7 @@ export default function FNOLChat() {
           <h1>File a Claim</h1>
         </div>
         <div className="field-progress">
-          {FNOL_REQUIRED.map((f, i) => (
+          {FNOL_REQUIRED.map((f) => (
             <div
               key={f}
               className={`field-dot ${draft[f as keyof typeof draft] ? 'field-dot--filled' : ''}`}
