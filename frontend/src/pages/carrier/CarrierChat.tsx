@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useClaim } from '../contexts/ClaimContext'
-import { carrier } from '../config/carrier'
-import type { FNOLMessage, DeathCertificateExtraction, MannerOfDeath } from '../types/claim'
+import { useClaim } from '../../contexts/ClaimContext'
+import { carrier } from '../../config/carrier'
+import type { FNOLMessage, DeathCertificateExtraction, MannerOfDeath } from '../../types/claim'
 
 const FNOL_REQUIRED = [
   'policy_number', 'beneficiary_name', 'beneficiary_email',
@@ -36,19 +36,22 @@ const { mockUser, mockPolicy } = carrier
 
 const GREETING: FNOLMessage = {
   role: 'assistant',
-  content: `I'm so sorry for your loss, ${mockUser.firstName}. I'm here to help you file a death benefit claim for ${mockPolicy.insuredName}'s policy. I'll walk you through it step by step — it should only take a few minutes.\n\nI have your information on file already. I just need a phone number where we can reach you, and then we'll go through the details together. What's the best number for you?`,
+  content: `Hi ${mockUser.firstName}! How can I help you today?`,
   timestamp: new Date().toISOString(),
 }
 
-export default function FNOLChat() {
+export default function CarrierChat() {
   const navigate = useNavigate()
-  const { draft, setDraft } = useClaim()
-  const [messages, setMessages] = useState<FNOLMessage[]>(() => {
-    return draft.chat_messages?.length ? draft.chat_messages : [GREETING]
-  })
+  const { draft, setDraft, clearDraft } = useClaim()
+
+  // Clear state on mount so every visit starts fresh
+  useEffect(() => {
+    clearDraft()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [messages, setMessages] = useState<FNOLMessage[]>([GREETING])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
-  const [policyData, setPolicyData] = useState<any>(null)
   const [showReview, setShowReview] = useState(false)
   const [certified, setCertified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -65,19 +68,6 @@ export default function FNOLChat() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Pre-seed draft with everything we already know from the logged-in session
-  useEffect(() => {
-    if (!draft.policy_number) {
-      setDraft({
-        policy_number: mockPolicy.number,
-        policy_verified: true,
-        beneficiary_name: `${mockUser.firstName} ${mockUser.lastName}`,
-        beneficiary_email: mockUser.email,
-        beneficiary_relationship: 'Spouse',
-      })
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   // Persist messages to draft
   useEffect(() => {
     setDraft({ chat_messages: messages })
@@ -86,7 +76,7 @@ export default function FNOLChat() {
   // Auto-scroll
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, policyData, showReview, showUploadWidget, extractedData, uploading])
+  }, [messages, showReview, showUploadWidget, extractedData, uploading])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || streaming) return
@@ -107,10 +97,14 @@ export default function FNOLChat() {
     setMessages(prev => [...prev, assistantMsg])
 
     try {
-      const response = await fetch('/api/claims/fnol/chat', {
+      const response = await fetch('/api/claims/carrier/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, draft }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          policy_number: mockPolicy.number,
+          draft,
+        }),
       })
 
       const reader = response.body?.getReader()
@@ -134,20 +128,15 @@ export default function FNOLChat() {
           try {
             const event = JSON.parse(payload)
 
-            if (event.type === 'fields') {
-              setDraft(event.data)
-            } else if (event.type === 'policy') {
-              setPolicyData(event.data)
-              if (event.data.found) {
-                setDraft({ policy_verified: true })
-              }
-            } else if (event.type === 'text') {
+            if (event.type === 'text') {
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
                 updated[updated.length - 1] = { ...last, content: last.content + event.data }
                 return updated
               })
+            } else if (event.type === 'state') {
+              setDraft(event.data)
             } else if (event.type === 'action' && event.action === 'show_review') {
               setShowReview(true)
             } else if (event.type === 'action' && event.action === 'upload_death_cert') {
@@ -162,7 +151,7 @@ export default function FNOLChat() {
         }
       }
     } catch (e) {
-      console.error('FNOL chat error:', e)
+      console.error('Carrier chat error:', e)
       setMessages(prev => {
         const updated = [...prev]
         updated[updated.length - 1] = {
@@ -179,7 +168,7 @@ export default function FNOLChat() {
 
   const handleUploadFile = useCallback(async (file: File) => {
     if (!draft.claim_id) {
-      setUploadError('Claim must be created first. Please provide your beneficiary information.')
+      setUploadError('Claim must be created first.')
       return
     }
 
@@ -195,9 +184,7 @@ export default function FNOLChat() {
         body: form,
       })
 
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
+      if (!response.ok) throw new Error('Upload failed')
 
       const result = await response.json()
       const extracted = result.extracted as DeathCertificateExtraction
@@ -251,12 +238,6 @@ export default function FNOLChat() {
     }
   }
 
-  const handlePolicyConfirm = () => {
-    setPolicyData(null)
-    setDraft({ policy_verified: true })
-    sendMessage("Yes, that's the correct policy.")
-  }
-
   const handleSubmit = async () => {
     if (!draft.claim_id || !certified) return
     setSubmitting(true)
@@ -269,6 +250,9 @@ export default function FNOLChat() {
     }
   }
 
+  // Whether we're in claim mode (claim has been started)
+  const hasActiveClaim = !!draft.claim_id
+
   return (
     <div className="fnol-chat">
       {/* Header */}
@@ -277,21 +261,23 @@ export default function FNOLChat() {
           <button
             className="btn btn-ghost btn--sm"
             style={{ color: 'rgba(255,255,255,0.85)', padding: '0.25rem 0.5rem' }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/carrier/home')}
           >
-            ←
+            &#8592;
           </button>
-          <h1>File a Claim</h1>
+          <h1>{hasActiveClaim ? 'File a Claim' : 'Chat'}</h1>
         </div>
-        <div className="field-progress">
-          {FNOL_REQUIRED.map((f) => (
-            <div
-              key={f}
-              className={`field-dot ${draft[f as keyof typeof draft] ? 'field-dot--filled' : ''}`}
-              title={FIELD_LABELS[f]}
-            />
-          ))}
-        </div>
+        {hasActiveClaim && (
+          <div className="field-progress">
+            {FNOL_REQUIRED.map((f) => (
+              <div
+                key={f}
+                className={`field-dot ${draft[f as keyof typeof draft] ? 'field-dot--filled' : ''}`}
+                title={FIELD_LABELS[f]}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -306,30 +292,6 @@ export default function FNOLChat() {
             </div>
           </div>
         ))}
-
-        {/* Policy confirmation card */}
-        {policyData?.found && (
-          <div className="fnol-policy-card">
-            <p className="text-sm font-semibold" style={{ marginBottom: '0.5rem' }}>Policy found</p>
-            <p style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-              {policyData.policy_number}
-            </p>
-            <p className="text-sm text-muted" style={{ marginBottom: '0.75rem' }}>
-              Insured: {policyData.insured_name_masked} · {policyData.policy_type}
-            </p>
-            <button className="btn btn-primary btn--sm" onClick={handlePolicyConfirm}>
-              Yes, that's correct
-            </button>
-          </div>
-        )}
-
-        {policyData && !policyData.found && (
-          <div className="fnol-policy-card" style={{ borderLeftColor: 'var(--color-warning)' }}>
-            <p className="text-sm" style={{ color: 'var(--color-warning)' }}>
-              Policy not found. Please double-check the number and try again.
-            </p>
-          </div>
-        )}
 
         {/* Death certificate upload widget */}
         {showUploadWidget && !extractedData && (

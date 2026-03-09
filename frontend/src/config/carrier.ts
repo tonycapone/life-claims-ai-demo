@@ -61,9 +61,9 @@ export const tidewell: CarrierConfig = {
     hours: 'Mon–Fri, 8am–8pm ET',
   },
   mockUser: {
-    firstName: 'Tony',
-    lastName: 'Capone',
-    email: 'tony@example.com',
+    firstName: 'John',
+    lastName: 'Smith',
+    email: 'john.smith@email.com',
   },
   mockPolicy: {
     number: 'LT-29471',
@@ -71,7 +71,7 @@ export const tidewell: CarrierConfig = {
     typeLabel: 'Term Life Insurance',
     faceAmount: '$500,000',
     status: 'Active',
-    insuredName: 'Robert Johnson',
+    insuredName: 'John Michael Smith',
     issueDate: 'Jan 15, 2025',
     premiumAmount: '$42.50',
     premiumFrequency: 'monthly',

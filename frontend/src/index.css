@@ -2344,6 +2344,34 @@ p:last-child { margin-bottom: 0; }
   font-weight: 500;
 }
 
+/* ── Floating Chat FAB ──────────────────────────────────── */
+.carrier-chat-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--carrier-accent);
+  color: white;
+  border: none;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 100;
+}
+.carrier-chat-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+}
+.carrier-chat-fab:active {
+  transform: scale(0.95);
+}
+
 
 /* ═══════════════════════════════════════════════════════════
    Contestability Analysis — The Demo Wow Moment

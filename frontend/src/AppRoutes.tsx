@@ -15,6 +15,7 @@ import AdjusterQueue from './pages/adjuster/AdjusterQueue'
 import AdjusterClaimDetail from './pages/adjuster/AdjusterClaimDetail'
 import CarrierLogin from './pages/carrier/CarrierLogin'
 import CarrierHome from './pages/carrier/CarrierHome'
+import CarrierChat from './pages/carrier/CarrierChat'
 
 export default function AppRoutes() {
   return (
@@ -34,6 +35,7 @@ export default function AppRoutes() {
         <Route path="/carrier" element={<Navigate to="/carrier/login" replace />} />
         <Route path="/carrier/login" element={<CarrierLogin />} />
         <Route path="/carrier/home" element={<CarrierHome />} />
+        <Route path="/carrier/chat" element={<CarrierChat />} />
         <Route path="/adjuster" element={<Navigate to="/adjuster/login" replace />} />
         <Route path="/adjuster/login" element={<AdjusterLogin />} />
         <Route path="/adjuster/queue" element={<AdjusterQueue />} />

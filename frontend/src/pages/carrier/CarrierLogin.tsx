@@ -79,7 +79,7 @@ export default function CarrierLogin() {
         </p>
 
         <div className="carrier-login__hint">
-          <strong>Demo:</strong> sarah.smith@email.com / password123
+          <strong>Demo:</strong> {carrier.mockUser.email} / password123
         </div>
       </div>
 

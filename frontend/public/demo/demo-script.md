@@ -12,7 +12,7 @@ A step-by-step walkthrough of the ClaimPath demo application for presenting to p
 
 | Portal | Username / Email | Password | Notes |
 |--------|-----------------|----------|-------|
-| Customer App (Carrier Login) | sarah.smith@email.com | password123 | Any credentials work; these match the demo persona |
+| Customer App (Carrier Login) | john.smith@email.com | password123 | Any credentials work; these match the demo persona |
 | Adjuster Dashboard | jmartinez | password123 | Also available: `rthompson`, `apatel` |
 
 **Death certificate PDF:** Available at `/demo/death-certificate-smith.pdf` on the demo site (download it locally before the demo or have it ready in a separate tab)
@@ -27,8 +27,8 @@ A step-by-step walkthrough of the ClaimPath demo application for presenting to p
 - [ ] Download the death certificate PDF: https://claimpath.click/demo/death-certificate-smith.pdf and save it to your desktop or downloads folder
 - [ ] If showing the customer app on a phone, have it open in a separate mobile browser or use browser dev tools to emulate a mobile viewport (390x844 iPhone 14 Pro)
 - [ ] If possible, have two browser windows ready: one for the customer experience, one for the adjuster dashboard
-- [ ] Clear any previous FNOL chat state by clearing localStorage if you have run the demo before (DevTools > Application > Local Storage > Clear)
-- [ ] Run `npm run db:seed` on the backend before the demo to ensure fresh seed data (stale Sarah Smith claims are auto-cleaned)
+- [ ] Clear any previous chat state by clearing localStorage if you have run the demo before (DevTools > Application > Local Storage > Clear)
+- [ ] Run `npm run db:seed` on the backend before the demo to ensure fresh seed data (stale Smith claims are auto-cleaned)
 
 ---
 
@@ -67,7 +67,7 @@ This is the most important part of the demo. The customer flow shows the convers
 You see a carrier-branded login screen for "Tidewell Life Insurance" (a fictional carrier). This is a white-label app shell -- the branding, colors, and logo are all configurable via a single config file.
 
 **What to do:**
-1. Note the demo credentials shown at the bottom: `sarah.smith@email.com / password123`
+1. Note the demo credentials shown at the bottom: `john.smith@email.com / password123`
 2. You can enter those credentials, or simply click **"Sign in with Face ID"** -- both work
 
 > "Notice this isn't the ClaimPath brand -- it's a fictional carrier called Tidewell Life Insurance. The entire customer experience is white-label. Swap one config file and the whole app re-skins for any carrier. This is designed as a module, not a standalone product."
@@ -77,61 +77,93 @@ You see a carrier-branded login screen for "Tidewell Life Insurance" (a fictiona
 **URL:** `/carrier/home`
 
 You see a polished mobile app home screen with:
-- A greeting ("Good morning/afternoon/evening, Tony")
+- A greeting ("Good morning/afternoon/evening, John")
 - A hero banner image
 - A **policy card** showing: Term Life Insurance, $500,000, Active, Policy # LT-29471, insured name, issue date, premium info
-- A **2x2 grid of quick actions**: File a Claim, Make a Payment, Documents, Contact Us
+- A **2x2 grid of quick actions**: Chat, Make a Payment, Documents, Contact Us
 - A **recent activity feed** with mock transaction history
+- A floating **chat button** (teal FAB) in the bottom-right corner
 - A support phone number at the bottom
 
-> "This looks and feels like a real carrier's mobile app. It shows the policyholder their coverage, payment history, quick actions. Everything here is static except one button -- File a Claim. That's where our product begins."
+> "This is John Smith's account -- he's the policyholder. Notice it looks and feels like a real carrier's mobile app. The only live action is the Chat button, which opens a general-purpose AI assistant."
 
-**What to click:** Tap **"File a Claim"** (top-left action button). This is the only live action; the other three buttons are intentionally non-functional.
+**What to click:** Tap **"Chat"** (top-left action button) or the floating chat button in the bottom-right corner.
 
-### Step 2.3: FNOL Chat -- Filing a Claim
+### Step 2.3: Agent-Powered Chat
 
-**URL:** `/claim/chat`
+**URL:** `/carrier/chat`
 
-This is the conversational claims intake. The AI guides the beneficiary through filing a death benefit claim step by step, collecting structured data from natural conversation.
+This is a **general-purpose AI assistant** powered by a Strands Agent with tools. It can answer any question about John's policy. When the user mentions a death, the agent naturally transitions into claim filing -- no mode switching, no keyword detection. The agent reasons.
 
 **What you see initially:**
-- A header bar with "File a Claim" title and a back arrow
-- **Progress dots** in the top-right corner (9 dots representing the 9 required fields)
-- The AI's opening message: "I'm so sorry for your loss. I'm here to help you file a death benefit claim -- I'll walk you through it step by step. Let's start with your policy number..."
+- A header bar with "Chat" title and a back arrow
+- The AI's opening message: "Hi John! How can I help you today?"
 - A text input at the bottom
+- **No progress dots** -- this starts as a general assistant, not a claim form
 
-#### Step 2.3.1: Provide the policy number
+> "This is John's account. The chat is a general-purpose AI assistant -- it can answer questions about his policy, payments, beneficiaries, anything. There's no 'file a claim' mode. Watch what happens when someone reports a death."
 
-**Type:** `My policy number is LT-29471`
+#### Step 2.3.1: Ask a general policy question
 
-**What happens:**
-- The AI extracts the policy number from your natural language
-- A **policy confirmation card** appears inline showing: Policy number, masked insured name (J**** M****** S****), and policy type
-- The AI streams a response asking for your information next
-- The first progress dot fills in
-
-**Wait for** the AI response to finish streaming before proceeding.
-
-**Click:** The **"Yes, that's correct"** button on the policy confirmation card.
-
-> "Two AI calls happen simultaneously behind the scenes. One extracts the policy number from my message -- it could be buried in a sentence, and the AI pulls it out. The other streams a natural, empathetic response. The policy is looked up in real time and a confirmation card appears inline."
-
-#### Step 2.3.2: Provide beneficiary information
-
-**Type:** `I'm Sarah Smith, his wife. My email is sarah.smith@email.com and my phone is 555-867-5309`
+**Type:** `When is my next payment?`
 
 **What happens:**
-- The AI extracts four fields from one natural sentence: beneficiary name, relationship, email, phone
-- Four more progress dots fill in (beneficiary_name, beneficiary_email, beneficiary_phone, beneficiary_relationship)
-- The AI responds, acknowledging the information and moving to the next step
+- The agent calls the `get_payment_info()` tool behind the scenes
+- It responds with real data from the policy: next payment date, amount, autopay status
+- This demonstrates the agent is a real assistant, not just a claims form
 
-**Wait for** the AI response to finish streaming.
+> "The AI called a tool to look up the actual payment information. This isn't canned -- it's reading from the policy database. Let me ask another question."
 
-> "I gave it four pieces of information in one natural sentence -- my name, relationship, email, and phone number. The AI extracted all four structured fields. Watch the progress dots fill in. It never felt like a form."
+#### Step 2.3.2: Ask about beneficiaries
 
-#### Step 2.3.3: Upload the death certificate
+**Type:** `Who are my beneficiaries?`
 
-After beneficiary info is collected, the AI asks if you have a copy of the death certificate. An **upload widget** appears inline in the chat with:
+**What happens:**
+- The agent calls the `get_beneficiaries()` tool
+- It responds with the beneficiary list: Sarah Smith, spouse, 100%
+
+> "Again, real data from the policy. Now here's where it gets interesting -- imagine Sarah picks up John's phone after he passes away."
+
+#### Step 2.3.3: Report a death
+
+**Type:** `My husband passed away last week`
+
+**What happens:**
+- The agent responds with genuine empathy
+- It asks who it's speaking with and their relationship to the insured
+- **No mode switch**, no keyword detection -- the agent reasons that someone is reporting a death on the policyholder's account
+- The header still says "Chat" (it changes to "File a Claim" once a claim is created)
+
+> "Notice what just happened. The AI didn't switch into 'claim mode' based on a keyword. It reasoned: someone on John's account just said their husband died. It responded with empathy and asked who it's speaking with. This is an AI agent, not a state machine."
+
+#### Step 2.3.4: Provide identity
+
+**Type:** `I'm Sarah, his wife. My phone is 555-867-5309 and my email is sarah@email.com`
+
+**What happens:**
+- The agent recognizes it has enough information to start a claim
+- It calls `start_claim()` behind the scenes, creating a real claim in the database
+- A `state` event pushes claim_id and beneficiary info to the frontend
+- The header changes to **"File a Claim"** and **progress dots** appear
+- The agent confirms the claim was created and asks for identity verification of the insured
+
+> "The agent decided it had enough information -- name, relationship, phone, email -- and created the claim automatically. Watch the header change and the progress dots appear. Now it needs to verify the insured's identity before proceeding."
+
+#### Step 2.3.5: Verify insured identity
+
+The agent asks you to confirm the insured's identity -- full legal name, date of birth, and last 4 of their Social Security number. This is standard claims procedure.
+
+**Type:** `His full name is John Michael Smith, born April 15, 1968, and his last four are 4471`
+
+**What happens:**
+- The agent confirms the identity details match the policy on file
+- It proceeds to request the death certificate
+
+> "The agent is following a real claims checklist -- it needs to verify who the deceased is before processing a half-million-dollar death benefit. Name, DOB, last four of the SSN. This is exactly what a claims rep would ask for."
+
+#### Step 2.3.6: Upload the death certificate
+
+The agent requests a death certificate upload. An **upload widget** appears inline in the chat with:
 - A "Upload Death Certificate" header
 - A drag-and-drop zone with "Tap to upload or drag and drop" text
 - Accepted formats: PDF, JPG, or PNG
@@ -156,25 +188,22 @@ After beneficiary info is collected, the AI asks if you have a copy of the death
 
 **Click:** **"Looks correct -- continue"**
 
-> "This is AI document extraction in action. The death certificate PDF is sent to Claude, which reads the document and extracts seven structured fields -- deceased name, date, cause of death, physician, jurisdiction, certificate number. The extracted data auto-populates three claim fields: date of death, cause, and manner. The beneficiary just confirms it looks right."
+> "This is AI document extraction in action. The death certificate PDF is sent to Claude, which reads the document and extracts seven structured fields. The extracted data auto-populates three claim fields automatically."
 
-**Important:** Three more progress dots fill in automatically (date_of_death, cause_of_death, manner_of_death) because the death certificate extraction populated those fields.
+#### Step 2.3.7: Payout preference
 
-#### Step 2.3.4: Payout preference
-
-The AI asks about payout preference since almost all fields are now collected.
+The AI asks about payout preference.
 
 **Type:** `Lump sum please`
 
 **What happens:**
-- The AI extracts payout_method = "lump_sum"
-- The final progress dot fills in
-- All 9 required fields are now collected
+- The agent calls `update_claim()` with the payout preference
+- The agent then calls `show_claim_review()` to display the review card
 - A **review card** appears inline showing all collected information
 
-> "That's the last field. Nine data points collected through a natural conversation -- and three of them came automatically from the death certificate. Under three minutes, and it never felt like filling out a form."
+> "The agent decided all required information has been collected and showed the review card. Nine data points collected through a natural conversation -- starting from general policy questions and transitioning naturally into claim filing."
 
-#### Step 2.3.5: Review and submit
+#### Step 2.3.8: Review and submit
 
 The review card shows:
 - All 9 fields with their values in a clean summary table
@@ -185,7 +214,7 @@ The review card shows:
 1. Check the certification checkbox
 2. Click **"Submit Claim"**
 
-#### Step 2.3.6: Confirmation screen
+#### Step 2.3.9: Confirmation screen
 
 **URL:** `/claim/confirmation`
 
@@ -198,7 +227,7 @@ After submission, you see:
   2. Under Review (hourglass -- active/current)
   3. Decision (pending)
   4. Payout (pending)
-- An info box: "We'll email updates to sarah.smith@email.com. Standard claims are typically resolved within 14-30 days."
+- An info box with email update promise
 - A **"Done"** button
 
 > "The beneficiary gets a claim number, a visual timeline of what comes next, and a promise of email updates. On the backend, AI risk scoring has already run -- that claim is sitting in the adjuster's queue right now, pre-scored. Let me show you."
@@ -452,7 +481,7 @@ Navigate back to the landing page (https://claimpath.click).
 
 > "What you just saw is a full claims lifecycle -- from a grieving beneficiary filing a claim through a conversation, to an adjuster reviewing it with AI-powered risk scoring and a copilot. Here's what makes this different:"
 
-1. **Conversational intake replaces forms.** The beneficiary never fills out a form. The AI extracts structured data from natural conversation and documents.
+1. **An AI agent, not a form.** The customer starts with a general-purpose assistant. When they report a death, the agent naturally transitions into claim filing -- no mode switching, no keyword detection. It reasons about context and calls tools to create claims, request documents, and guide the process.
 
 2. **AI risk scoring happens instantly.** The moment a claim is submitted, it's already assessed -- contestability, fraud indicators, recommended next steps. The adjuster doesn't start from scratch.
 
@@ -472,10 +501,10 @@ Navigate back to the landing page (https://claimpath.click).
 
 ## Troubleshooting
 
-### The FNOL chat is not responding
+### The carrier chat is not responding
 - Check that the backend is running and the API is reachable
 - Check browser DevTools console for errors
-- If Bedrock is unavailable, the system falls back to mock responses (the experience still works, but responses are simpler)
+- If Bedrock is unavailable, the system falls back to keyword-based mock responses (the experience still works, but the agent won't reason or call tools)
 
 ### The death certificate extraction shows generic data
 - This means Bedrock/Claude is not available and the system fell back to mock extraction
@@ -497,7 +526,7 @@ Navigate back to the landing page (https://claimpath.click).
 
 ### Clearing state for a fresh demo
 - Open browser DevTools > Application > Local Storage > Clear all
-- This resets the FNOL chat state so you can start fresh
+- This resets the chat state so you can start fresh
 - Run `npm run db:seed` on the backend to reset seed data
 
 ---
@@ -545,8 +574,9 @@ Navigate back to the landing page (https://claimpath.click).
 ### Shortened version (8 minutes)
 
 If time is limited:
-1. Skip the carrier login/home screen -- go directly to `/claim/chat`
-2. Move quickly through the FNOL chat (skip talking points between messages)
-3. On the adjuster side, show only the newly filed claim (skip the high-risk contrast)
-4. Show just one copilot question and one communication draft
-5. Keep the wrap-up to 30 seconds
+1. Skip the carrier login/home screen -- go directly to `/carrier/chat`
+2. Skip the general policy questions -- go straight to "My husband passed away"
+3. Move quickly through the claim chat (skip talking points between messages)
+4. On the adjuster side, show only the newly filed claim (skip the high-risk contrast)
+5. Show just one copilot question and one communication draft
+6. Keep the wrap-up to 30 seconds

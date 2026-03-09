@@ -1,6 +1,7 @@
 import os
 import uuid
 import json
+import asyncio
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
@@ -10,6 +11,7 @@ from typing import Optional
 from app.database import get_db
 from app.models import Policy, Claim, ClaimStatus
 from app.ai import extract_document, score_risk, extract_fnol_fields, stream_fnol_chat, should_request_death_cert, FNOL_REQUIRED_FIELDS, _missing_fields
+from app.carrier_agent import build_carrier_agent, mock_carrier_response, _bedrock_available
 
 router = APIRouter()
 
@@ -61,6 +63,12 @@ class FNOLChatMessage(BaseModel):
 
 class FNOLChatRequest(BaseModel):
     messages: list[FNOLChatMessage]
+    draft: dict = {}
+
+
+class CarrierChatRequest(BaseModel):
+    messages: list[FNOLChatMessage]
+    policy_number: str = "LT-29471"
     draft: dict = {}
 
 
@@ -214,6 +222,78 @@ def fnol_chat(req: FNOLChatRequest, db: Session = Depends(get_db)):
         # Stream conversational response
         for chunk in stream_fnol_chat(chat_msgs, draft):
             yield f"data: {json.dumps({'type': 'text', 'data': chunk})}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.post("/carrier/chat")
+async def carrier_chat(req: CarrierChatRequest, db: Session = Depends(get_db)):
+    """Carrier chat — Strands Agent-powered general assistant + claim filing."""
+    policy = db.query(Policy).filter_by(policy_number=req.policy_number.upper()).first()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Policy not found")
+
+    last_user_msg = ""
+    for m in reversed(req.messages):
+        if m.role == "user":
+            last_user_msg = m.content
+            break
+    if not last_user_msg:
+        raise HTTPException(status_code=400, detail="No user message")
+
+    # Build message history for agent
+    chat_msgs = [{"role": m.role, "content": m.content} for m in req.messages]
+    chat_msgs = chat_msgs[-20:]
+
+    # Mock fallback when Bedrock unavailable
+    if not _bedrock_available():
+        def mock_stream():
+            events = mock_carrier_response(last_user_msg, policy, req.draft)
+            for event in events:
+                yield f"data: {json.dumps(event)}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(mock_stream(), media_type="text/event-stream")
+
+    # Build Strands Agent
+    sse_queue: asyncio.Queue = asyncio.Queue()
+    agent = build_carrier_agent(db, sse_queue, policy)
+
+    # Populate agent message history from previous turns (skip last user msg — that's the prompt)
+    if len(chat_msgs) > 1:
+        for msg in chat_msgs[:-1]:
+            agent.messages.append({
+                "role": msg["role"],
+                "content": [{"text": msg["content"]}],
+            })
+
+    async def event_stream():
+        try:
+            async for event in agent.stream_async(last_user_msg):
+                # Emit text chunks
+                if "data" in event:
+                    chunk = event["data"]
+                    if chunk:
+                        yield f"data: {json.dumps({'type': 'text', 'data': chunk})}\n\n"
+
+                # Drain SSE queue for tool side-effects
+                while not sse_queue.empty():
+                    try:
+                        side_event = sse_queue.get_nowait()
+                        yield f"data: {json.dumps(side_event)}\n\n"
+                    except asyncio.QueueEmpty:
+                        break
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'text', 'data': f'I apologize, something went wrong. Please try again.'})}\n\n"
+
+        # Final drain of queue
+        while not sse_queue.empty():
+            try:
+                side_event = sse_queue.get_nowait()
+                yield f"data: {json.dumps(side_event)}\n\n"
+            except asyncio.QueueEmpty:
+                break
 
         yield "data: [DONE]\n\n"
 

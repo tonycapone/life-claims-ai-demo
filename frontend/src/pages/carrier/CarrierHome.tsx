@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faFileLines,
+  faComments,
   faCreditCard,
   faFolderOpen,
   faHeadset,
@@ -15,7 +15,7 @@ import {
 import { carrier } from '../../config/carrier'
 
 const QUICK_ACTIONS = [
-  { label: 'File a Claim', icon: faFileLines, path: '/claim/chat', live: true },
+  { label: 'Chat', icon: faComments, path: '/carrier/chat', live: true },
   { label: 'Make a Payment', icon: faCreditCard, path: null, live: false },
   { label: 'Documents', icon: faFolderOpen, path: null, live: false },
   { label: 'Contact Us', icon: faHeadset, path: null, live: false },
@@ -155,6 +155,15 @@ export default function CarrierHome() {
           </p>
         </div>
       </div>
+
+      {/* Floating chat button */}
+      <button
+        className="carrier-chat-fab"
+        onClick={() => navigate('/carrier/chat')}
+        aria-label="Chat with us"
+      >
+        <FontAwesomeIcon icon={faComments} />
+      </button>
     </div>
   )
 }
