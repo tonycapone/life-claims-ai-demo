@@ -64,6 +64,7 @@ export default function CarrierChat() {
 
   // Payout choice state
   const [payoutChosen, setPayoutChosen] = useState<string | null>(null)
+  const payoutChosenRef = useRef<string | null>(null)
 
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -157,12 +158,14 @@ export default function CarrierChat() {
                 { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
               ])
             } else if (event.type === 'action' && event.action === 'choose_payout') {
-              setPayoutChosen(null)
-              setMessages(prev => [
-                ...prev,
-                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString(), widget: 'choose_payout' as const },
-                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
-              ])
+              if (!payoutChosenRef.current) {
+                setPayoutChosen(null)
+                setMessages(prev => [
+                  ...prev,
+                  { role: 'assistant' as const, content: '', timestamp: new Date().toISOString(), widget: 'choose_payout' as const },
+                  { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
+                ])
+              }
             } else if (event.type === 'action' && event.action === 'show_review') {
               setMessages(prev => [
                 ...prev,
@@ -278,6 +281,8 @@ export default function CarrierChat() {
 
   const handlePayoutChoice = (choice: 'lump_sum' | 'structured') => {
     setPayoutChosen(choice)
+    payoutChosenRef.current = choice
+    setDraft({ payout_method: choice })
     const label = choice === 'lump_sum' ? 'a lump sum payment' : 'structured payments over time'
     sendMessage(`I'd prefer ${label}.`)
   }

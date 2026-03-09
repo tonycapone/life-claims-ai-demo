@@ -1718,6 +1718,8 @@ p:last-child { margin-bottom: 0; }
 
 .demo-resource-link--script svg { color: #1a365d; }
 .demo-resource-link--pdf svg { color: #dc2626; }
+.demo-resource-link--reset svg { color: #6366f1; }
+.demo-resource-link--reset:disabled { opacity: 0.6; cursor: wait; }
 
 .demo-resource-link strong {
   display: block;
@@ -1752,6 +1754,34 @@ p:last-child { margin-bottom: 0; }
   font-size: 0.75rem;
   color: #9ca3af;
   padding-top: 0.5rem;
+}
+
+/* ── Demo Script FAB (floating action button) ────────── */
+.demo-script-fab {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1a365d;
+  color: white;
+  border: none;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 1001;
+}
+.demo-script-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.demo-script-fab:active {
+  transform: scale(0.95);
 }
 
 /* ── Demo Script Drawer ──────────────────────────────── */

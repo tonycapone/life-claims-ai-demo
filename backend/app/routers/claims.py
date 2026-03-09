@@ -369,7 +369,16 @@ def submit_claim(claim_id: str, db: Session = Depends(get_db)):
 
     policy = db.query(Policy).filter_by(policy_number=claim.policy_number).first()
 
-    # AI risk scoring
+    # Mark as submitted immediately so adjuster dashboard can see it
+    claim.status = ClaimStatus.SUBMITTED
+    claim.face_amount = policy.face_amount if policy else None
+    claim.insured_name = policy.insured_name if policy else claim.insured_name
+    claim.insured_dob = policy.insured_dob if policy else claim.insured_dob
+    claim.policy_issue_date = policy.issue_date if policy else None
+    claim.jurisdiction_state = "IL"  # default for demo
+    db.commit()
+
+    # AI risk scoring (may take a few seconds with Bedrock)
     claim_data = {
         "claim_number": claim.claim_number,
         "beneficiary_name": claim.beneficiary_name,
@@ -383,7 +392,6 @@ def submit_claim(claim_id: str, db: Session = Depends(get_db)):
     }
     risk = score_risk(claim_data, policy_data)
 
-    claim.status = ClaimStatus.SUBMITTED
     claim.risk_level = risk.get("risk_level")
     claim.contestability_alert = risk.get("contestability_alert", False)
     claim.months_since_issue = risk.get("months_since_issue")
@@ -458,3 +466,14 @@ def verify_identity(claim_id: str, db: Session = Depends(get_db)):
     claim.identity_verified = True
     db.commit()
     return {"verified": True, "message": "Identity successfully verified"}
+
+
+# Seed claim numbers to preserve on reset
+_SEED_CLAIMS = {"CLM-2026-00135", "CLM-2026-00140", "CLM-2026-00129"}
+
+@router.post("/reset-demo")
+def reset_demo(db: Session = Depends(get_db)):
+    """Delete all claims except seeded demo claims. Used to reset between demo runs."""
+    deleted = db.query(Claim).filter(~Claim.claim_number.in_(_SEED_CLAIMS)).delete(synchronize_session="fetch")
+    db.commit()
+    return {"deleted": deleted}

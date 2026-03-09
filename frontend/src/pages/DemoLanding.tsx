@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import ReactMarkdown from 'react-markdown'
 import {
   faMobileScreenButton,
   faDesktop,
@@ -11,8 +10,7 @@ import {
   faBrain,
   faFileLines,
   faFilePdf,
-  faBookOpen,
-  faXmark,
+  faRotateLeft,
 } from '@fortawesome/free-solid-svg-icons'
 
 const CAPABILITIES = [
@@ -24,26 +22,8 @@ const CAPABILITIES = [
 
 export default function DemoLanding() {
   const navigate = useNavigate()
-  const [scriptOpen, setScriptOpen] = useState(false)
-  const [scriptContent, setScriptContent] = useState('')
-
-  const openScript = useCallback(async () => {
-    setScriptOpen(true)
-    if (!scriptContent) {
-      const res = await fetch('/demo/demo-script.md')
-      const text = await res.text()
-      setScriptContent(text)
-    }
-  }, [scriptContent])
-
-  useEffect(() => {
-    if (scriptOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [scriptOpen])
+  const [resetting, setResetting] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
 
   return (
     <div className="demo-landing">
@@ -133,16 +113,6 @@ export default function DemoLanding() {
         <div className="demo-landing__section-label">Demo resources</div>
 
         <div className="demo-landing__resources">
-          <button
-            className="demo-resource-link demo-resource-link--script"
-            onClick={openScript}
-          >
-            <FontAwesomeIcon icon={faBookOpen} />
-            <div>
-              <strong>Demo Script</strong>
-              <span>Step-by-step walkthrough with talking points and timing</span>
-            </div>
-          </button>
           <a
             href="/demo/death-certificate-smith.pdf"
             target="_blank"
@@ -191,6 +161,30 @@ export default function DemoLanding() {
               <span>Lakeview Internal Medicine records — contains undisclosed conditions</span>
             </div>
           </a>
+          <button
+            className="demo-resource-link demo-resource-link--reset"
+            onClick={async () => {
+              setResetting(true)
+              setResetMsg('')
+              try {
+                const res = await fetch('/api/claims/reset-demo', { method: 'POST' })
+                const data = await res.json()
+                setResetMsg(`Cleared ${data.deleted} claim${data.deleted === 1 ? '' : 's'}`)
+              } catch {
+                setResetMsg('Reset failed')
+              } finally {
+                setResetting(false)
+                setTimeout(() => setResetMsg(''), 3000)
+              }
+            }}
+            disabled={resetting}
+          >
+            <FontAwesomeIcon icon={faRotateLeft} spin={resetting} />
+            <div>
+              <strong>{resetting ? 'Resetting...' : 'Reset Demo Claims'}</strong>
+              <span>{resetMsg || 'Clear all filed claims to start fresh'}</span>
+            </div>
+          </button>
         </div>
 
         {/* Context */}
@@ -207,31 +201,6 @@ export default function DemoLanding() {
           ClaimPath Demo
         </div>
       </div>
-
-      {/* Demo script drawer */}
-      {scriptOpen && (
-        <div className="demo-drawer-overlay" onClick={() => setScriptOpen(false)}>
-          <div className="demo-drawer" onClick={e => e.stopPropagation()}>
-            <div className="demo-drawer__header">
-              <h2>Demo Script</h2>
-              <button
-                className="demo-drawer__close"
-                onClick={() => setScriptOpen(false)}
-                aria-label="Close"
-              >
-                <FontAwesomeIcon icon={faXmark} />
-              </button>
-            </div>
-            <div className="demo-drawer__body markdown-body">
-              {scriptContent ? (
-                <ReactMarkdown>{scriptContent}</ReactMarkdown>
-              ) : (
-                <p style={{ color: 'var(--color-muted)' }}>Loading...</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

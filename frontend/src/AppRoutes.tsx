@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import DemoScriptOverlay from './components/DemoScriptOverlay'
 import DemoLanding from './pages/DemoLanding'
 import PolicyLookup from './pages/PolicyLookup'
 import BeneficiaryInfo from './pages/BeneficiaryInfo'
@@ -20,6 +21,7 @@ import CarrierChat from './pages/carrier/CarrierChat'
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <DemoScriptOverlay />
       <Routes>
         <Route path="/" element={<DemoLanding />} />
         <Route path="/claim/chat" element={<FNOLChat />} />
