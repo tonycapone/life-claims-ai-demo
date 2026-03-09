@@ -58,12 +58,17 @@ who they are. Ask who you're speaking with and their relationship to the insured
 4. Once you have their identity info, use start_claim() to create the claim
 5. Verify the insured's identity — ask the beneficiary to confirm the insured's \
 full legal name, date of birth, and the last 4 digits of their Social Security number. \
-Use update_claim() to record the confirmed SSN last 4.
-6. ALWAYS use request_document_upload() to ask them to upload a death certificate. \
-This is REQUIRED — do NOT skip it or ask them to describe the death details verbally. \
-The upload widget extracts date, cause, and manner of death automatically.
-7. After the death certificate, ask about payout preference (lump sum or structured payments). \
-Use update_claim() to record it.
+Use verify_insured_identity() to check their answers against policy records. If any \
+field doesn't match, tell the beneficiary which fields were incorrect and ask them to try again. \
+Do NOT proceed until verification passes.
+6. ALWAYS call the request_document_upload() tool to show the upload widget for the death certificate. \
+This is REQUIRED — you MUST call the tool, not just mention uploading in your text response. \
+The tool displays an upload UI to the user. Without calling it, the user has no way to upload. \
+Do NOT ask them to describe the death details verbally — the upload extracts everything automatically.
+7. ALWAYS call request_payout_choice() to show the payout selection widget. \
+This displays buttons for the user to choose between lump sum and structured payments. \
+You MUST call this tool — don't just ask about payout preference in text. \
+After the user selects, use update_claim() to record their choice.
 8. When ALL items above are collected, use show_claim_review() to let them review and submit.
 
 Guidelines:
@@ -73,6 +78,9 @@ Guidelines:
 - Never proactively mention death or claims unless the user does
 - When collecting claim information, ask for one or two things at a time, not everything at once
 - Work through the checklist step by step — do not combine or skip steps
+- IMPORTANT: request_document_upload(), request_payout_choice(), and show_claim_review() display \
+UI widgets to the user. You MUST call these tools — just mentioning uploads, payout options, or \
+reviews in text does nothing. The user cannot interact unless you call the tools.
 """
 
 
@@ -114,7 +122,7 @@ def _bedrock_available() -> bool:
         return False
 
 
-def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
+def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy, draft: dict = None):
     """Build a Strands Agent with carrier tools. Returns (agent, system_prompt)."""
     from strands import Agent, tool
     from strands.models.bedrock import BedrockModel
@@ -122,6 +130,25 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
     from botocore.config import Config as BotoConfig
 
     system_prompt = _build_system_prompt(policy)
+
+    # Inject current claim state so the agent knows where we are in the checklist
+    if draft and draft.get("claim_id"):
+        state_lines = ["\nCURRENT CLAIM STATE (a claim is already in progress):"]
+        state_lines.append(f"- claim_id: {draft['claim_id']}")
+        if draft.get("claim_number"):
+            state_lines.append(f"- claim_number: {draft['claim_number']}")
+        for field in ["beneficiary_name", "beneficiary_email", "beneficiary_phone",
+                       "beneficiary_relationship", "date_of_death", "cause_of_death",
+                       "manner_of_death", "payout_method"]:
+            if draft.get(field):
+                state_lines.append(f"- {field}: {draft[field]}")
+        if draft.get("death_certificate_uploaded"):
+            state_lines.append("- death_certificate: UPLOADED")
+        if draft.get("death_certificate_skipped"):
+            state_lines.append("- death_certificate: SKIPPED")
+        state_lines.append("\nUse this claim_id for any update_claim, request_document_upload, or show_claim_review calls.")
+        state_lines.append("Do NOT call start_claim() again — the claim already exists.")
+        system_prompt += "\n".join(state_lines)
 
     # ── Tool definitions (close over db, sse_queue, policy) ──────────
 
@@ -175,6 +202,43 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
         })
 
     @tool
+    def verify_insured_identity(
+        policy_number: str,
+        full_name: str,
+        date_of_birth: str,
+        ssn_last4: str,
+    ) -> str:
+        """Verify the insured's identity against policy records. Call this when the
+        beneficiary provides the insured's full name, date of birth, and last 4 of
+        their SSN. Returns whether each field matches.
+        date_of_birth must be in YYYY-MM-DD format. Convert whatever the user says
+        (e.g. 'April 15, 1968') to '1968-04-15' before calling this tool."""
+        p = db.query(Policy).filter_by(policy_number=policy_number.upper()).first()
+        if not p:
+            return f"No policy found with number {policy_number}."
+
+        results = {}
+        # Name check (case-insensitive)
+        results["name_match"] = full_name.strip().lower() == p.insured_name.strip().lower()
+        # DOB check (agent converts to YYYY-MM-DD before calling)
+        results["dob_match"] = date_of_birth.strip() == p.insured_dob
+        # SSN last 4 check
+        results["ssn_match"] = ssn_last4.strip() == p.insured_ssn_last4
+
+        all_match = all(results.values())
+        results["verified"] = all_match
+
+        if all_match:
+            return json.dumps({"verified": True, "message": "All identity fields match policy records."})
+        else:
+            mismatches = [k.replace("_match", "") for k, v in results.items() if k.endswith("_match") and not v]
+            return json.dumps({
+                "verified": False,
+                "mismatches": mismatches,
+                "message": f"The following did not match our records: {', '.join(mismatches)}. Please ask the beneficiary to try again.",
+            })
+
+    @tool
     def start_claim(
         policy_number: str,
         beneficiary_name: str,
@@ -208,15 +272,27 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
         db.refresh(claim)
 
         # Push state event so frontend knows claim was created
+        claim_data = {
+            "claim_id": claim.id,
+            "claim_number": claim.claim_number,
+            "policy_number": p.policy_number,
+            "beneficiary_name": beneficiary_name,
+            "beneficiary_email": beneficiary_email,
+            "beneficiary_phone": beneficiary_phone,
+            "beneficiary_relationship": beneficiary_relationship,
+        }
+        sse_queue.put_nowait({"type": "state", "data": claim_data})
+
+        # Push action to show claim-created card
         sse_queue.put_nowait({
-            "type": "state",
+            "type": "action",
+            "action": "claim_created",
             "data": {
-                "claim_id": claim.id,
                 "claim_number": claim.claim_number,
                 "policy_number": p.policy_number,
+                "insured_name": p.insured_name,
+                "face_amount": _format_currency(p.face_amount),
                 "beneficiary_name": beneficiary_name,
-                "beneficiary_email": beneficiary_email,
-                "beneficiary_phone": beneficiary_phone,
                 "beneficiary_relationship": beneficiary_relationship,
             },
         })
@@ -237,7 +313,10 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
         insured_ssn_last4: Optional[str] = None,
     ) -> str:
         """Update a claim with death details, payout preference, or insured identity
-        confirmation. Call this as you collect information from the beneficiary."""
+        confirmation. Call this as you collect information from the beneficiary.
+        date_of_death: YYYY-MM-DD format (convert from natural language).
+        manner_of_death: one of 'natural', 'accident', 'homicide', 'suicide', 'unknown'.
+        payout_method: one of 'lump_sum' or 'structured'."""
         claim = db.query(Claim).filter_by(id=claim_id).first()
         if not claim:
             return f"No claim found with ID {claim_id}."
@@ -271,7 +350,10 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
     @tool
     def request_document_upload(claim_id: str, document_type: str) -> str:
         """Request the user to upload a document (e.g. death_certificate).
-        Call this when you need the beneficiary to provide documentation."""
+        Call this when you need the beneficiary to provide documentation.
+        This displays an upload widget in the chat UI. Only call this ONCE —
+        the widget stays visible until the user uploads or skips. Do NOT call
+        it again if you already called it in this conversation."""
         claim = db.query(Claim).filter_by(id=claim_id).first()
         if not claim:
             return f"No claim found with ID {claim_id}."
@@ -282,7 +364,25 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
             "data": {"claim_id": claim_id, "document_type": document_type},
         })
 
-        return f"Upload widget displayed to user for {document_type}."
+        return f"Success: upload widget is now visible to the user for {document_type}. Do NOT call this tool again — wait for the user to upload or skip."
+
+    @tool
+    def request_payout_choice(claim_id: str) -> str:
+        """Show the payout method selection widget to the beneficiary.
+        Call this when it's time to ask about their payout preference.
+        The widget lets them choose between lump sum and structured payments.
+        Only call this ONCE — the widget stays visible."""
+        claim = db.query(Claim).filter_by(id=claim_id).first()
+        if not claim:
+            return f"No claim found with ID {claim_id}."
+
+        sse_queue.put_nowait({
+            "type": "action",
+            "action": "choose_payout",
+            "data": {"claim_id": claim_id},
+        })
+
+        return "Payout selection widget displayed. Wait for the user to choose before proceeding."
 
     @tool
     def show_claim_review(claim_id: str) -> str:
@@ -318,9 +418,11 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy):
             lookup_policy,
             get_beneficiaries,
             get_payment_info,
+            verify_insured_identity,
             start_claim,
             update_claim,
             request_document_upload,
+            request_payout_choice,
             show_claim_review,
         ],
     )

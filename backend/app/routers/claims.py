@@ -258,7 +258,7 @@ async def carrier_chat(req: CarrierChatRequest, db: Session = Depends(get_db)):
 
     # Build Strands Agent
     sse_queue: asyncio.Queue = asyncio.Queue()
-    agent = build_carrier_agent(db, sse_queue, policy)
+    agent = build_carrier_agent(db, sse_queue, policy, req.draft)
 
     # Populate agent message history from previous turns (skip last user msg — that's the prompt)
     if len(chat_msgs) > 1:
