@@ -6,22 +6,18 @@
 
 ## Credentials
 
-| Portal | Login | Password |
-|--------|-------|----------|
-| Customer App | john.smith@email.com | password123 |
-| Adjuster | jmartinez | password123 |
+- **Customer App:** john.smith@email.com / password123
+- **Adjuster:** jmartinez / password123
+- **Policy:** LT-29471 — John Michael Smith, $500K Term Life, 14 months old
 
-**Death certificates** (download one before starting):
-- **Low-risk:** `death-certificate-smith.pdf` — cardiac arrest, natural death
-- **High-risk:** `death-certificate-smith-high-risk.pdf` — rock climbing fall, accidental death
+## Death certificates (download one before starting)
 
-**Policy:** LT-29471 — John Michael Smith, $500K Term Life, 14 months old
-
----
+- [Low-risk PDF](/demo/death-certificate-smith.pdf) — cardiac arrest, natural death
+- [High-risk PDF](/demo/death-certificate-smith-high-risk.pdf) — rock climbing fall, accidental death
 
 ## Before you start
 
-1. Download your chosen death certificate PDF from the landing page
+1. Download your chosen death certificate PDF above
 2. If re-running: click **Reset Demo Claims** on the landing page
 3. Ideal setup: customer app on phone (or mobile emulator), adjuster dashboard on a second window
 
