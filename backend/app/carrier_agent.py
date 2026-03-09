@@ -18,7 +18,7 @@ from app.models import Policy, Claim, ClaimStatus
 
 BEDROCK_MODEL_ID = os.getenv(
     "BEDROCK_MODEL_ID",
-    "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "us.anthropic.claude-sonnet-4-6",
 )
 BEDROCK_REGION = os.getenv("AWS_REGION", "us-east-1")
 
