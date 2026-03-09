@@ -103,10 +103,18 @@ export class ClaimPathStack extends cdk.Stack {
     dbCredentials.grantRead(taskRole);
     documentsBucket.grantReadWrite(taskRole);
 
-    // Bedrock — invoke Claude models
+    // Bedrock — invoke Claude models (converse API + cross-region inference)
     taskRole.addToPolicy(new iam.PolicyStatement({
-      actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-      resources: ['arn:aws:bedrock:*::foundation-model/*'],
+      actions: [
+        'bedrock:InvokeModel',
+        'bedrock:InvokeModelWithResponseStream',
+        'bedrock:Converse',
+        'bedrock:ConverseStream',
+      ],
+      resources: [
+        'arn:aws:bedrock:*::foundation-model/*',
+        'arn:aws:bedrock:*:*:inference-profile/*',
+      ],
     }));
 
     // Allow ECS tasks → RDS
