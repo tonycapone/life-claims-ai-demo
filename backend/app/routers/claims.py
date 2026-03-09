@@ -269,18 +269,24 @@ async def carrier_chat(req: CarrierChatRequest, db: Session = Depends(get_db)):
             })
 
     async def event_stream():
+        full_text = ""
+        emitted_actions = set()
+
         try:
             async for event in agent.stream_async(last_user_msg):
                 # Emit text chunks
                 if "data" in event:
                     chunk = event["data"]
                     if chunk:
+                        full_text += chunk
                         yield f"data: {json.dumps({'type': 'text', 'data': chunk})}\n\n"
 
                 # Drain SSE queue for tool side-effects
                 while not sse_queue.empty():
                     try:
                         side_event = sse_queue.get_nowait()
+                        if side_event.get("action"):
+                            emitted_actions.add(side_event["action"])
                         yield f"data: {json.dumps(side_event)}\n\n"
                     except asyncio.QueueEmpty:
                         break
@@ -291,9 +297,23 @@ async def carrier_chat(req: CarrierChatRequest, db: Session = Depends(get_db)):
         while not sse_queue.empty():
             try:
                 side_event = sse_queue.get_nowait()
+                if side_event.get("action"):
+                    emitted_actions.add(side_event["action"])
                 yield f"data: {json.dumps(side_event)}\n\n"
             except asyncio.QueueEmpty:
                 break
+
+        # Safety net: emit widget events the agent should have triggered
+        # but didn't. This catches cases where the model asks about
+        # something in text instead of calling the corresponding tool.
+        text_lower = full_text.lower()
+        draft = req.draft or {}
+
+        if ("choose_payout" not in emitted_actions
+                and "payout" in text_lower
+                and draft.get("claim_id")
+                and not draft.get("payout_method")):
+            yield f"data: {json.dumps({'type': 'action', 'action': 'choose_payout', 'data': {'claim_id': draft['claim_id']}})}\n\n"
 
         yield "data: [DONE]\n\n"
 

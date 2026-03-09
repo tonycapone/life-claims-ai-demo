@@ -260,21 +260,12 @@ export default function CarrierChat() {
   const handleUploadConfirm = () => {
     setUploadConfirmed(true)
     const extracted = extractedData
-    const parts: string[] = []
-    if (extracted?.deceased_name) parts.push(`Deceased: ${extracted.deceased_name}`)
-    if (extracted?.date_of_death) parts.push(`Date: ${extracted.date_of_death}`)
-    if (extracted?.cause_of_death) parts.push(`Cause: ${extracted.cause_of_death}`)
-    const summary = parts.length > 0 ? parts.join(', ') : 'Certificate uploaded'
-
-    // Inject payout widget right after the upload confirmation
-    if (!draft.payout_method) {
-      setPayoutChosen(null)
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: `I've uploaded the death certificate. ${summary}`, timestamp: new Date().toISOString() },
-        { role: 'assistant', content: '', timestamp: new Date().toISOString(), widget: 'choose_payout' as const },
-      ])
-    } else {
+    if (extracted) {
+      const parts: string[] = []
+      if (extracted.deceased_name) parts.push(`Deceased: ${extracted.deceased_name}`)
+      if (extracted.date_of_death) parts.push(`Date: ${extracted.date_of_death}`)
+      if (extracted.cause_of_death) parts.push(`Cause: ${extracted.cause_of_death}`)
+      const summary = parts.length > 0 ? parts.join(', ') : 'Certificate uploaded'
       sendMessage(`I've uploaded the death certificate. ${summary}`)
     }
   }
@@ -282,18 +273,7 @@ export default function CarrierChat() {
   const handleUploadSkip = () => {
     setUploadConfirmed(true)
     setDraft({ death_certificate_skipped: true })
-
-    // Inject payout widget after skip too
-    if (!draft.payout_method) {
-      setPayoutChosen(null)
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: "I don't have the death certificate right now.", timestamp: new Date().toISOString() },
-        { role: 'assistant', content: '', timestamp: new Date().toISOString(), widget: 'choose_payout' as const },
-      ])
-    } else {
-      sendMessage("I don't have the death certificate right now.")
-    }
+    sendMessage("I don't have the death certificate right now.")
   }
 
   const handlePayoutChoice = (choice: 'lump_sum' | 'structured') => {

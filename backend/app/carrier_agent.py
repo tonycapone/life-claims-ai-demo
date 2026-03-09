@@ -52,33 +52,22 @@ this checklist IN ORDER. Do not skip steps or jump ahead.
 
 CLAIM CHECKLIST:
 1. Respond with genuine empathy — this person is grieving
-2. You're speaking with someone on the policyholder's account — you DON'T know \
-who they are. Ask who you're speaking with and their relationship to the insured.
+2. Ask who you're speaking with and their relationship to the insured
 3. Collect their phone number and email address
-4. Once you have their identity info, use start_claim() to create the claim
-5. Verify the insured's identity — ask the beneficiary to confirm the insured's \
-full legal name, date of birth, and the last 4 digits of their Social Security number. \
-Use verify_insured_identity() to check their answers against policy records. If any \
-field doesn't match, tell the beneficiary which fields were incorrect and ask them to try again. \
-Do NOT proceed until verification passes.
-6. ALWAYS call the request_document_upload() tool to show the upload widget for the death certificate. \
-This is REQUIRED — you MUST call the tool, not just mention uploading in your text response. \
-The tool displays an upload UI to the user. Without calling it, the user has no way to upload. \
-Do NOT ask them to describe the death details verbally — the upload extracts everything automatically.
-7. The payout preference step is handled automatically by the UI — do NOT ask about payout. \
-When the user tells you their payout preference, use update_claim() to record it.
-8. When ALL items above are collected, use show_claim_review() to let them review and submit.
+4. Use start_claim() to create the claim
+5. Verify the insured's identity — ask for full legal name, date of birth, and \
+last 4 of SSN. Use verify_insured_identity() to check against policy records.
+6. Use request_document_upload() to show the death certificate upload widget
+7. Ask about payout preference (lump sum or structured payments), then use \
+update_claim() to record it
+8. Use show_claim_review() to let them review and submit
 
 Guidelines:
 - 2-4 sentences per response, warm and professional
 - For general questions, use your tools — give real answers from the policy data
 - Never ask for information you already have
 - Never proactively mention death or claims unless the user does
-- When collecting claim information, ask for one or two things at a time, not everything at once
-- Work through the checklist step by step — do not combine or skip steps
-- IMPORTANT: request_document_upload() and show_claim_review() display UI widgets to the user. \
-You MUST call these tools — just mentioning uploads or reviews in text does nothing. \
-The user cannot interact unless you call the tools.
+- Ask for one or two things at a time, not everything at once
 """
 
 
@@ -365,6 +354,24 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy, d
         return f"Success: upload widget is now visible to the user for {document_type}. Do NOT call this tool again — wait for the user to upload or skip."
 
     @tool
+    def request_payout_choice(claim_id: str) -> str:
+        """Show the payout method selection widget to the beneficiary.
+        Call this when it's time to ask about their payout preference.
+        The widget lets them choose between lump sum and structured payments.
+        Only call this ONCE — the widget stays visible."""
+        claim = db.query(Claim).filter_by(id=claim_id).first()
+        if not claim:
+            return f"No claim found with ID {claim_id}."
+
+        sse_queue.put_nowait({
+            "type": "action",
+            "action": "choose_payout",
+            "data": {"claim_id": claim_id},
+        })
+
+        return "Payout selection widget displayed. Wait for the user to choose before proceeding."
+
+    @tool
     def show_claim_review(claim_id: str) -> str:
         """Show the claim review and submission card to the beneficiary.
         Call this when all required information has been collected."""
@@ -402,6 +409,7 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy, d
             start_claim,
             update_claim,
             request_document_upload,
+            request_payout_choice,
             show_claim_review,
         ],
     )
