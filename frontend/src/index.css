@@ -1510,6 +1510,13 @@ p:last-child { margin-bottom: 0; }
   margin-bottom: 1.75rem;
 }
 
+.demo-landing__logo-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
 .demo-landing__logo-icon {
   width: 40px;
   height: 40px;

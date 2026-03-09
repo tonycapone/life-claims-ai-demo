@@ -51,7 +51,7 @@ export default function DemoLanding() {
       <div className="demo-landing__hero">
         <div className="demo-landing__hero-inner">
           <div className="demo-landing__logo">
-            <div className="demo-landing__logo-icon">CP</div>
+            <img src="/logo-claimpath.png" alt="ClaimPath" className="demo-landing__logo-img" />
             <span className="demo-landing__logo-text">
               Claim<span>Path</span>
             </span>
