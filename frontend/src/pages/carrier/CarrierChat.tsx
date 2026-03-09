@@ -234,6 +234,13 @@ export default function CarrierChat() {
       const result = await response.json()
       const extracted = result.extracted as DeathCertificateExtraction
 
+      // Check if extraction found any meaningful data
+      const hasData = extracted.deceased_name || extracted.date_of_death || extracted.cause_of_death
+      if (!hasData) {
+        setUploadError("This doesn't appear to be a death certificate. Please upload the correct document.")
+        return
+      }
+
       setExtractedData(extracted)
       setDraft({
         death_certificate_uploaded: true,
