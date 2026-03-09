@@ -203,9 +203,13 @@ export default function CarrierChat() {
         }
         return updated
       })
-      inputRef.current?.focus()
     }
   }, [streaming, messages, draft, setDraft])
+
+  // Re-focus input after streaming ends (must wait for re-render to un-disable)
+  useEffect(() => {
+    if (!streaming) inputRef.current?.focus()
+  }, [streaming])
 
   const handleUploadFile = useCallback(async (file: File) => {
     if (!draft.claim_id) {
