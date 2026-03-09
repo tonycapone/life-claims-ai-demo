@@ -65,10 +65,11 @@ Do NOT proceed until verification passes.
 This is REQUIRED — you MUST call the tool, not just mention uploading in your text response. \
 The tool displays an upload UI to the user. Without calling it, the user has no way to upload. \
 Do NOT ask them to describe the death details verbally — the upload extracts everything automatically.
-7. ALWAYS call request_payout_choice() to show the payout selection widget. \
-This displays buttons for the user to choose between lump sum and structured payments. \
-You MUST call this tool — don't just ask about payout preference in text. \
-After the user selects, use update_claim() to record their choice.
+7. For payout preference: call request_payout_choice() — NOTHING ELSE. \
+Do NOT write "lump sum" or "structured payments" in your text. Do NOT ask about payout in text. \
+The tool shows clickable buttons. Just call the tool and say something brief like \
+"Now let's choose how you'd like to receive the benefit." \
+After the user selects via the widget, use update_claim() to record their choice.
 8. When ALL items above are collected, use show_claim_review() to let them review and submit.
 
 Guidelines:
