@@ -1261,6 +1261,16 @@ p:last-child { margin-bottom: 0; }
   font-weight: 600;
 }
 
+/* ReactMarkdown inside chat bubbles (carrier chat) */
+.chat-bubble p {
+  margin: 0;
+}
+.chat-bubble p + p {
+  margin-top: 0.5rem;
+}
+.chat-bubble strong {
+  font-weight: 600;
+}
 
 /* ── FNOL Chat ─────────────────────────────────────────── */
 .fnol-chat {

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { useClaim } from '../../contexts/ClaimContext'
 import { carrier } from '../../config/carrier'
 import type { FNOLMessage, DeathCertificateExtraction, MannerOfDeath } from '../../types/claim'
@@ -640,7 +641,9 @@ export default function CarrierChat() {
           return (
             <div key={i} className={`chat-message chat-message--${msg.role}`}>
               <div className="chat-bubble">
-                {msg.content}
+                {msg.role === 'assistant'
+                  ? <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  : msg.content}
                 {streaming && i === messages.length - 1 && msg.role === 'assistant' && msg.content === '' && (
                   <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
                 )}
