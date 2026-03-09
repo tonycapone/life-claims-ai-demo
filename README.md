@@ -164,10 +164,28 @@ Context-aware chat assistant pre-loaded with the full claim. Adjusters can ask q
 
 ---
 
-## Project Context
+## Built with AI
 
-A production-quality prototype demonstrating how AI can transform the life insurance claims process. Two frontends, a Python/FastAPI backend, real AWS infrastructure — with AI reasoning about real claim data. Nothing is canned.
+This project was built almost entirely with AI-assisted development — architecture, code, design, synthetic data, even the demo script. The repo is structured so that AI agents (and humans) have full context at every step.
 
-**Domain research:** `docs/research.md`
-**Full feature spec:** `docs/spec.md`
-**Open items:** `WORK.md`
+All important context lives in the repo:
+
+| Path | What's in it |
+|---|---|
+| `docs/spec.md` | Full product spec — features, data models, AI capabilities, UX flows |
+| `docs/research.md` | Domain research — claims industry, regulations, competitive landscape |
+| `docs/demo-notes.md` | Demo strategy — what to emphasize, what makes it wow |
+| `docs/reviews/` | AI executive reviews (CEO, CTO, COO personas) that stress-tested the demo |
+| `WORK.md` | Living backlog — every work item, open and closed, with context |
+
+### AI Executive Reviews
+
+Before presenting to humans, we had three AI personas — a CEO, CTO, and COO — independently review the platform as if evaluating it for adoption. Each brought a different lens:
+
+- **CEO review** (`docs/reviews/ceo-review.md`) — Market positioning, competitive differentiation, go-to-market readiness
+- **CTO review** (`docs/reviews/cto-review.md`) — Architecture, security, scalability, integration patterns
+- **COO review** (`docs/reviews/coo-review.md`) — Operational realism, claims workflow accuracy, regulatory compliance
+
+Their feedback directly shaped the backlog. The contestability analysis feature (comparing medical records against the insurance application) was flagged by all three as the single highest-value capability — and became the centerpiece of the demo. The regulatory timeline card, OFAC screening mock, and multi-beneficiary awareness items all came from these reviews.
+
+Summary: `docs/reviews/executive-summary.md`

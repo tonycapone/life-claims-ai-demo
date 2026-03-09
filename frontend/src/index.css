@@ -1571,6 +1571,83 @@ p:last-child { margin-bottom: 0; }
   padding: 1.5rem 1.25rem 2rem;
 }
 
+/* ── GitHub Corner ────────────────────────────────────── */
+.github-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.github-corner svg {
+  fill: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 0;
+}
+
+.github-corner:hover svg {
+  fill: rgba(255, 255, 255, 0.25);
+}
+
+.github-corner .octo-arm {
+  transform-origin: 130px 106px;
+}
+
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
+}
+
+@keyframes octocat-wave {
+  0%, 100% { transform: rotate(0) }
+  20%, 60% { transform: rotate(-25deg) }
+  40%, 80% { transform: rotate(10deg) }
+}
+
+.demo-landing__start-here {
+  background: white;
+  border: 1px solid #e2e5ea;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.demo-landing__start-here h3 {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #2563eb;
+  margin: 0 0 0.625rem;
+}
+
+.demo-landing__start-here ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.demo-landing__start-here li {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.demo-landing__start-here li strong {
+  color: #1a1a1a;
+}
+
+.demo-start-icon {
+  color: #2563eb;
+  width: 14px;
+  margin-right: 0.375rem;
+}
+
 .demo-landing__section-label {
   font-size: 0.6875rem;
   font-weight: 600;
@@ -1834,6 +1911,42 @@ p:last-child { margin-bottom: 0; }
 .demo-script-panel--open {
   width: 380px;
   min-width: 380px;
+}
+
+/* Mobile: script panel becomes a full-screen overlay */
+@media (max-width: 768px) {
+  .demo-script-layout {
+    display: block;
+    position: relative;
+  }
+
+  .demo-script-main {
+    height: 100dvh;
+  }
+
+  .demo-script-panel {
+    position: fixed;
+    inset: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    z-index: 1000;
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+    border-right: none;
+  }
+
+  .demo-script-panel--open {
+    width: 100% !important;
+    min-width: 0 !important;
+    transform: translateY(0);
+  }
+
+  .demo-script-fab--open {
+    left: auto !important;
+    right: 0.75rem;
+    bottom: 0.75rem !important;
+    z-index: 1001;
+  }
 }
 
 /* ── Demo Script Drawer ──────────────────────────────── */

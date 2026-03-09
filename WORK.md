@@ -28,12 +28,8 @@
 
 ---
 
-### W-003 🟢 GitHub repo not yet created
-**Context:** Local repo initialized but not pushed to GitHub. Tony needs to create `tonycapone/claims-ai-assistant` on GitHub then we push.
-**TODO:**
-- Tony creates repo at github.com/new (name: `claims-ai-assistant`, public)
-- `git remote add origin git@github.com:tonycapone/claims-ai-assistant.git`
-- `git push -u origin main`
+### W-003 ✅ GitHub repo not yet created
+**Context:** Repo created at `tonycapone/life-claims-ai-demo`, pushed to GitHub.
 
 ---
 
@@ -313,37 +309,18 @@
 
 ---
 
-### W-027 🟡 Deploy FNOL chat to claimpath.click
-**Context:** Conversational FNOL chat is built locally (backend AI functions, SSE endpoint, FNOLChat.tsx page). Needs to be deployed to claimpath.click so it's live.
-**TODO:**
-- Build frontend (`npm run build`) and deploy to S3/CloudFront
-- Deploy backend (ECS Fargate) with updated `ai.py` and `claims.py`
-- Verify Bedrock access from ECS task role (Claude Haiku model)
-- Smoke test: file a claim via chat on claimpath.click
-- Confirm claim appears in adjuster queue
+### W-027 ✅ Deploy FNOL chat to claimpath.click
+**Context:** Deployed. FNOL chat live at claimpath.click, Bedrock access verified, claims appear in adjuster queue.
 
 ---
 
-### W-028 🟡 Migrate AI layer to Strands Agents SDK + AgentCore Runtime
-**Context:** Currently using raw boto3 `converse()` / `converse_stream()` calls in `backend/app/ai.py`. Should migrate to [Strands Agents SDK](https://github.com/strands-agents/sdk-python) for agent orchestration and deploy agents via AWS AgentCore Runtime for managed hosting, auth, sessions, and observability.
-**TODO:**
-- Install `strands-agents` and `strands-agents-builder` packages
-- Refactor FNOL chat agent: define tools (policy lookup, field extraction, claim creation) as Strands tools
-- Refactor adjuster copilot agent: claim context tools, draft generation, risk explanation
-- Define agent configs (model, system prompt, tools) as Strands Agent instances
-- Deploy agents to AgentCore Runtime (`agentcore create-agent`)
-- Update backend endpoints to invoke agents via AgentCore Runtime API instead of direct Bedrock calls
-- Keep mock fallbacks for local dev without AgentCore access
+### W-028 ✅ Migrate AI layer to Strands Agents SDK
+**Context:** Carrier chat agent migrated to Strands Agents SDK (`backend/app/carrier_agent.py`). Tools defined for policy lookup, claim creation, document upload, payout choice, claim review/submit. Deployed on ECS with Bedrock access.
 
 ---
 
-### W-029 🟡 Finalize demo script
-**Context:** Draft demo script at `docs/demo-script.md`. Covers dual thesis (AI as product + AI as developer), live FNOL chat walkthrough, adjuster dashboard, PWA/Capacitor story, and the AI-forward development process. ~5 minutes.
-**TODO:**
-- Tony reviews and adjusts emphasis/talking points
-- Rehearse with live claimpath.click to confirm timing
-- Decide whether to show adjuster copilot live or just flash it
-- Add speaker notes for transitions if presenting with slides
+### W-029 ✅ Finalize demo script
+**Context:** Demo script finalized at `frontend/public/demo/demo-script.md`. Tight teleprompter format — actions, talking points, what to type. Accessible via global Script panel (FAB button, bottom-left).
 
 ---
 
@@ -373,12 +350,8 @@
 
 ---
 
-### W-033 🟢 Inline payout selector widget
-**Context:** Show a card with the policy face amount and two options (Lump Sum / Structured Payments) with brief descriptions. More visual than typing.
-**TODO:**
-- Backend: send `action: pick_payout` event with face_amount in data
-- Frontend: card showing "$500,000 Death Benefit" with two tappable option cards
-- On select, send as user message and set draft field
+### W-033 ✅ Inline payout selector widget
+**Context:** Payout choice widget rendered inline in chat via `request_payout_choice` Strands tool. Shows Lump Sum / Structured Payments cards. Selection sets draft field and sends message.
 
 ---
 
@@ -402,19 +375,8 @@
 
 ---
 
-### W-036 🔴 Contestability analysis: Application vs. Medical Records comparison
-**Context:** The highest-value AI feature for claims adjusters. During the 2-year contestability period, adjusters spend 2-3 days manually reading medical records and comparing against the original insurance application looking for material misrepresentations. AI can do this in seconds.
-**TODO:**
-- Create synthetic seed documents:
-  - 1-page insurance application PDF (yes/no health questionnaire) for each contestable policy
-  - 3-4 pages of medical record excerpts (doctor visits, prescriptions, lab results)
-  - Plant 2-3 deliberate discrepancies (e.g. "No" to heart disease but atrial fibrillation diagnosis in records)
-- Store documents on Policy or Claim model (application_url, medical_records_url)
-- Add `analyze_contestability(application, medical_records) -> DiscrepancyReport` to ai.py
-  - Returns structured table: question, applicant answer, medical record finding, source, assessment
-- Add "Run Contestability Analysis" button on adjuster claim detail for contestable claims
-- Add backend endpoint: `POST /api/adjuster/claims/:id/contestability`
-- Display discrepancy report as a structured card in the adjuster UI
+### W-036 ✅ Contestability analysis: Application vs. Medical Records comparison
+**Context:** Done (see W-042). Synthetic application + medical records PDFs created, contestability analysis endpoint built, discrepancy report displayed on adjuster claim detail.
 
 ---
 
@@ -429,40 +391,18 @@
 
 ---
 
-### W-038 🔴 Policy-aware FNOL chat with smart follow-ups
-**Context:** If the AI knows the policy provisions (riders, exclusions), the customer-facing chat can ask intelligent follow-up questions. E.g. if the policy has an accidental death rider with an intoxication exclusion and the beneficiary says "car accident," the AI asks for the police report number — surfacing the info the adjuster needs without being insensitive about why.
-**TODO:**
-- Add `provisions` field to Policy model (JSON: riders, exclusions, conditions)
-- Seed provisions for demo policies (e.g. accidental death rider, intoxication exclusion on LT-29471)
-- Inject policy provisions into FNOL chat system prompt after policy lookup
-- AI reasons about which follow-ups matter based on cause of death + policy terms
-- Collected follow-up info visible on adjuster claim detail (police report #, accident details, etc.)
-- Add follow-up fields to Claim model: police_report_number, accident_details, etc.
+### W-038 ✅ Policy-aware FNOL chat with smart follow-ups
+**Context:** Carrier agent has full policy context (beneficiaries, face amount, issue date, provisions) injected into system prompt after policy lookup. Agent uses Strands tools to look up policy data and reason about follow-ups based on cause of death + policy terms.
 
 ---
 
-### W-039 🟢 White-label / multi-carrier theming
-**Context:** The platform should demonstrate that it's not a one-off app but a configurable module that any carrier can adopt. A single config change should re-skin the entire UI with a different carrier's branding (logo, colors, company name).
-**TODO:**
-- Extract brand config to a single `theme.ts` file (logo, primary color, company name, tagline)
-- CSS variables already exist — just need to swap them per config
-- Add a theme switcher or URL param (`?carrier=nationwide`) for demo purposes
-- Create 2-3 sample carrier themes (default ClaimPath + 2 mock carriers)
-- All copy references ("Claims Department", company name in letters) pull from config
+### W-039 ✅ White-label / multi-carrier theming
+**Context:** Customer app runs under fictional "Tidewell Life Insurance" branding (logo, colors, copy). CSS variables drive theming. Demonstrates white-label capability — swap one config to re-skin for any carrier.
 
 ---
 
-### W-040 🔴 Mock carrier app shell — full mobile experience
-**Context:** The beneficiary experience currently drops you straight into claim filing. For the demo, it should feel like you're inside a real carrier's mobile app — login, dashboard, policy cards — and then navigate to "File a Claim" from within that context. Everything except the claim flow is static mock UI.
-**TODO:**
-- Create a fictional carrier brand (name, logo, color palette, tagline) — not USAA but that vibe
-- Generate a carrier logo/hero image (Gemini CLI or similar)
-- Mock login screen (email + password + biometric icon, carrier-branded)
-- Mock home dashboard: "Welcome back, Tony" + policy card (Term Life $500K, active) + quick actions (File a Claim, Make a Payment, Documents, Contact Us) + recent activity feed
-- Mock policy detail screen (coverage summary, beneficiaries, payment history)
-- "File a Claim" button navigates to real FNOL chat
-- All other buttons are static / show "Coming soon" toast or just look tappable
-- Integrate with W-039 white-label theming — carrier brand defined in config
+### W-040 ✅ Mock carrier app shell — full mobile experience
+**Context:** Full Tidewell Life Insurance carrier app: login (email/password + Face ID), home dashboard with policy card + quick actions, chat with AI agent. Mobile-first PWA layout.
 
 ---
 
@@ -559,5 +499,65 @@
 - `scripts/db.sh` — run SQL against local or prod DB
 - `scripts/logs.sh` — tail ECS logs via CloudWatch
 - `scripts/seed.py` → move seed logic here, callable from npm script
+
+---
+
+### W-049 ✅ Demo script overlay panel
+**Context:** Global side panel accessible from any page via "Script" FAB pill (bottom-left). Fetches and renders `demo-script.md` with ReactMarkdown. Desktop: in-flow panel that pushes content. Mobile: full-screen overlay that slides up.
+
+---
+
+### W-050 ✅ Dual demo scenarios — low-risk vs high-risk death certificate
+**Context:** Two death certificate PDFs for the same policyholder (John Smith, LT-29471). Low-risk: cardiac arrest, natural death. High-risk: rock climbing fall, accidental death. High-risk triggers undisclosed hazardous activity flag + recent beneficiary change flag on adjuster side. Includes beneficiary change history on Policy model.
+
+---
+
+### W-051 ✅ Demo reset endpoint + button
+**Context:** `POST /api/claims/reset-demo` clears all non-seed claims. "Reset Demo Claims" button on landing page with loading state and feedback message.
+
+---
+
+### W-052 ✅ Payout widget bug fix
+**Context:** Payout choice widget re-appeared after selection because `draft.payout_method` wasn't set, causing backend safety net to re-emit `choose_payout`. Fixed with `payoutChosenRef` to track state across async closures + draft sync.
+
+---
+
+### W-053 ✅ Immediate claim visibility in adjuster portal
+**Context:** Claims now set to SUBMITTED status and committed to DB immediately before AI risk scoring runs, so adjusters see new claims in the queue right away instead of waiting for scoring to complete.
+
+---
+
+### W-054 ✅ Markdown rendering in carrier chat
+**Context:** Assistant messages in carrier chat now rendered with ReactMarkdown so bold, links, and other formatting display correctly instead of raw `**` markers.
+
+---
+
+### W-055 ✅ Agent one-step-at-a-time instruction
+**Context:** Carrier agent system prompt updated with "CRITICAL: Only do ONE step per response" to prevent combining upload + payout questions in a single turn.
+
+---
+
+### W-056 ✅ Favicon from ClaimPath logo
+**Context:** Generated multi-resolution favicon.ico (16x16 + 32x32) from logo-claimpath.png. Updated index.html with favicon link tags.
+
+---
+
+### W-057 ✅ GitHub corner ribbon on landing page
+**Context:** Classic tholman/github-corners octocat SVG in top-right of landing page hero. Links to `github.com/tonycapone/life-claims-ai-demo`. Arm waves on hover.
+
+---
+
+### W-058 ✅ "Start here" section on landing page
+**Context:** Callout card at top of landing page content for new users — download a test death certificate and open the Script panel for a walkthrough.
+
+---
+
+### W-059 ✅ Mobile-responsive script panel
+**Context:** On screens under 768px, script panel switches from in-flow side panel to full-screen overlay that slides up from bottom. Close button moves to bottom-right for thumb reach.
+
+---
+
+### W-060 ✅ Upgrade carrier agent to Sonnet 4.6
+**Context:** Carrier chat agent model upgraded from Haiku to Sonnet 4.6 (`us.anthropic.claude-sonnet-4-6-20250514-v1:0`) for better reasoning and tool use quality.
 
 ---
