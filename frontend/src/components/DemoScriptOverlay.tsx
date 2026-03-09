@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBookOpen, faXmark } from '@fortawesome/free-solid-svg-icons'
 
-export default function DemoScriptOverlay() {
+export default function DemoScriptOverlay({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [content, setContent] = useState('')
 
@@ -17,15 +17,8 @@ export default function DemoScriptOverlay() {
   }, [open, content])
 
   return (
-    <>
-      <button
-        className="demo-script-fab"
-        onClick={toggle}
-        aria-label={open ? 'Close demo script' : 'Open demo script'}
-      >
-        <FontAwesomeIcon icon={open ? faXmark : faBookOpen} />
-      </button>
-
+    <div className="demo-script-layout">
+      {/* Script panel — in flow, pushes content */}
       <div className={`demo-script-panel ${open ? 'demo-script-panel--open' : ''}`}>
         <div className="demo-drawer__header">
           <h2>Demo Script</h2>
@@ -45,6 +38,21 @@ export default function DemoScriptOverlay() {
           )}
         </div>
       </div>
-    </>
+
+      {/* App content — fills remaining space */}
+      <div className="demo-script-main">
+        {children}
+      </div>
+
+      {/* Toggle FAB */}
+      <button
+        className="demo-script-fab"
+        style={open ? { left: 'calc(380px + 1.25rem)' } : undefined}
+        onClick={toggle}
+        aria-label={open ? 'Close demo script' : 'Open demo script'}
+      >
+        <FontAwesomeIcon icon={open ? faXmark : faBookOpen} />
+      </button>
+    </div>
   )
 }

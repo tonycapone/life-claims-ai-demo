@@ -21,7 +21,7 @@ import CarrierChat from './pages/carrier/CarrierChat'
 export default function AppRoutes() {
   return (
     <BrowserRouter>
-      <DemoScriptOverlay />
+      <DemoScriptOverlay>
       <Routes>
         <Route path="/" element={<DemoLanding />} />
         <Route path="/claim/chat" element={<FNOLChat />} />
@@ -43,6 +43,7 @@ export default function AppRoutes() {
         <Route path="/adjuster/queue" element={<AdjusterQueue />} />
         <Route path="/adjuster/claims/:id" element={<AdjusterClaimDetail />} />
       </Routes>
+      </DemoScriptOverlay>
     </BrowserRouter>
   )
 }
