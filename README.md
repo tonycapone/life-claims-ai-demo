@@ -174,7 +174,6 @@ All important context lives in the repo:
 |---|---|
 | `docs/spec.md` | Full product spec — features, data models, AI capabilities, UX flows |
 | `docs/research.md` | Domain research — claims industry, regulations, competitive landscape |
-| `docs/demo-notes.md` | Demo strategy — what to emphasize, what makes it wow |
 | `docs/reviews/` | AI executive reviews (CEO, CTO, COO personas) that stress-tested the demo |
 | `WORK.md` | Living backlog — every work item, open and closed, with context |
 
