@@ -44,7 +44,6 @@ export default function CarrierChat() {
   const navigate = useNavigate()
   const { draft, setDraft, clearDraft } = useClaim()
 
-  // Clear state on mount so every visit starts fresh
   useEffect(() => {
     clearDraft()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -52,17 +51,19 @@ export default function CarrierChat() {
   const [messages, setMessages] = useState<FNOLMessage[]>([GREETING])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
-  const [showReview, setShowReview] = useState(false)
   const [certified, setCertified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  // Death certificate upload state
-  const [showUploadWidget, setShowUploadWidget] = useState(false)
+  // Upload interaction state
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [extractedData, setExtractedData] = useState<DeathCertificateExtraction | null>(null)
+  const [uploadConfirmed, setUploadConfirmed] = useState(false)
   const [dragover, setDragover] = useState(false)
   const [uploadFileName, setUploadFileName] = useState('')
+
+  // Payout choice state
+  const [payoutChosen, setPayoutChosen] = useState<string | null>(null)
 
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -76,7 +77,7 @@ export default function CarrierChat() {
   // Auto-scroll
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, showReview, showUploadWidget, extractedData, uploading])
+  }, [messages, uploading, extractedData])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || streaming) return
@@ -85,14 +86,14 @@ export default function CarrierChat() {
     setInput('')
     setStreaming(true)
 
-    // Build chat history for API (limit to 20)
+    // Filter out widget messages and empties before sending to API
     const allMessages = [...messages, userMsg]
     const apiMessages = allMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .filter(m => (m.role === 'user' || m.role === 'assistant') && !m.widget && m.content.trim())
       .slice(-20)
       .map(m => ({ role: m.role, content: m.content }))
 
-    // Placeholder assistant message
+    // Placeholder assistant message for streaming text
     const assistantMsg: FNOLMessage = { role: 'assistant', content: '', timestamp: new Date().toISOString() }
     setMessages(prev => [...prev, assistantMsg])
 
@@ -132,18 +133,42 @@ export default function CarrierChat() {
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
-                updated[updated.length - 1] = { ...last, content: last.content + event.data }
+                if (last && !last.widget) {
+                  updated[updated.length - 1] = { ...last, content: last.content + event.data }
+                }
                 return updated
               })
             } else if (event.type === 'state') {
               setDraft(event.data)
-            } else if (event.type === 'action' && event.action === 'show_review') {
-              setShowReview(true)
+            } else if (event.type === 'action' && event.action === 'claim_created') {
+              setMessages(prev => [
+                ...prev,
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString(), widget: 'claim_created' as const, widgetData: event.data },
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
+              ])
             } else if (event.type === 'action' && event.action === 'upload_death_cert') {
-              setShowUploadWidget(true)
               setExtractedData(null)
+              setUploadConfirmed(false)
               setUploadFileName('')
               setUploadError(null)
+              setMessages(prev => [
+                ...prev,
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString(), widget: 'upload_cert' as const },
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
+              ])
+            } else if (event.type === 'action' && event.action === 'choose_payout') {
+              setPayoutChosen(null)
+              setMessages(prev => [
+                ...prev,
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString(), widget: 'choose_payout' as const },
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
+              ])
+            } else if (event.type === 'action' && event.action === 'show_review') {
+              setMessages(prev => [
+                ...prev,
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString(), widget: 'review' as const },
+                { role: 'assistant' as const, content: '', timestamp: new Date().toISOString() },
+              ])
             }
           } catch {
             // skip malformed events
@@ -154,14 +179,30 @@ export default function CarrierChat() {
       console.error('Carrier chat error:', e)
       setMessages(prev => {
         const updated = [...prev]
-        updated[updated.length - 1] = {
-          ...updated[updated.length - 1],
-          content: "I'm sorry, something went wrong. Please try again.",
+        const last = updated[updated.length - 1]
+        if (last && !last.widget) {
+          updated[updated.length - 1] = {
+            ...last,
+            content: "I'm sorry, something went wrong. Please try again.",
+          }
         }
         return updated
       })
     } finally {
       setStreaming(false)
+      // Clean up trailing empty non-widget assistant messages
+      setMessages(prev => {
+        const updated = [...prev]
+        while (
+          updated.length > 0 &&
+          updated[updated.length - 1].role === 'assistant' &&
+          !updated[updated.length - 1].content &&
+          !updated[updated.length - 1].widget
+        ) {
+          updated.pop()
+        }
+        return updated
+      })
       inputRef.current?.focus()
     }
   }, [streaming, messages, draft, setDraft])
@@ -206,7 +247,7 @@ export default function CarrierChat() {
   }, [draft.claim_id, setDraft])
 
   const handleUploadConfirm = () => {
-    setShowUploadWidget(false)
+    setUploadConfirmed(true)
     const extracted = extractedData
     if (extracted) {
       const parts: string[] = []
@@ -219,9 +260,15 @@ export default function CarrierChat() {
   }
 
   const handleUploadSkip = () => {
-    setShowUploadWidget(false)
+    setUploadConfirmed(true)
     setDraft({ death_certificate_skipped: true })
     sendMessage("I don't have the death certificate right now.")
+  }
+
+  const handlePayoutChoice = (choice: 'lump_sum' | 'structured') => {
+    setPayoutChosen(choice)
+    const label = choice === 'lump_sum' ? 'a lump sum payment' : 'structured payments over time'
+    sendMessage(`I'd prefer ${label}.`)
   }
 
   const onDrop = (e: React.DragEvent) => {
@@ -250,8 +297,280 @@ export default function CarrierChat() {
     }
   }
 
-  // Whether we're in claim mode (claim has been started)
   const hasActiveClaim = !!draft.claim_id
+
+  // ── Widget renderers ─────────────────────────────────────
+
+  const renderClaimCreated = (data: any) => (
+    <div className="fnol-policy-card" style={{ borderLeftColor: 'var(--carrier-accent)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--carrier-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+        <span className="font-semibold">Claim Created</span>
+      </div>
+      <div className="extraction-card">
+        <div className="extraction-row">
+          <span className="extraction-label">Claim #</span>
+          <span className="extraction-value" style={{ fontWeight: 600 }}>{data.claim_number}</span>
+        </div>
+        <div className="extraction-row">
+          <span className="extraction-label">Policy</span>
+          <span className="extraction-value">{data.policy_number}</span>
+        </div>
+        <div className="extraction-row">
+          <span className="extraction-label">Insured</span>
+          <span className="extraction-value">{data.insured_name}</span>
+        </div>
+        <div className="extraction-row">
+          <span className="extraction-label">Face Amount</span>
+          <span className="extraction-value">{data.face_amount}</span>
+        </div>
+        <div className="extraction-row">
+          <span className="extraction-label">Beneficiary</span>
+          <span className="extraction-value">{data.beneficiary_name} ({data.beneficiary_relationship})</span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderUploadWidget = () => {
+    // After confirmation — read-only extraction summary
+    if (uploadConfirmed && extractedData) {
+      return (
+        <div className="fnol-extraction-card">
+          <div className="fnol-extraction-card__header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <span className="fnol-extraction-card__title">Certificate processed</span>
+          </div>
+          <div className="extraction-card">
+            {EXTRACTION_FIELDS.map(([key, label]) => {
+              const value = extractedData[key]
+              if (!value) return null
+              return (
+                <div key={key} className="extraction-row">
+                  <span className="extraction-label">{label}</span>
+                  <span className="extraction-value">{value}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )
+    }
+
+    // After skip — collapsed state
+    if (uploadConfirmed) {
+      return (
+        <div className="fnol-upload-card" style={{ opacity: 0.6 }}>
+          <div className="fnol-upload-card__header">
+            <span className="fnol-upload-card__title">Death certificate — skipped</span>
+          </div>
+        </div>
+      )
+    }
+
+    // Extraction results — needs confirmation
+    if (extractedData) {
+      return (
+        <div className="fnol-extraction-card">
+          <div className="fnol-extraction-card__header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <span className="fnol-extraction-card__title">Certificate processed</span>
+          </div>
+          <div className="extraction-card">
+            {EXTRACTION_FIELDS.map(([key, label]) => {
+              const value = extractedData[key]
+              if (!value) return null
+              return (
+                <div key={key} className="extraction-row">
+                  <span className="extraction-label">{label}</span>
+                  <span className="extraction-value">{value}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="fnol-extraction-card__actions">
+            <button className="btn btn-primary btn--sm" onClick={handleUploadConfirm}>
+              Looks correct — continue
+            </button>
+            <button
+              className="btn btn-ghost btn--sm"
+              onClick={() => {
+                setExtractedData(null)
+                setUploadFileName('')
+                setUploadError(null)
+                setDraft({
+                  death_certificate_uploaded: false,
+                  death_certificate_extracted: undefined,
+                  date_of_death: undefined,
+                  cause_of_death: undefined,
+                  manner_of_death: undefined,
+                } as any)
+              }}
+            >
+              Re-upload
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // Upload zone
+    return (
+      <div className="fnol-upload-card">
+        <div className="fnol-upload-card__header">
+          <span className="fnol-upload-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="12" y1="18" x2="12" y2="12" />
+              <line x1="9" y1="15" x2="15" y2="15" />
+            </svg>
+          </span>
+          <span className="fnol-upload-card__title">Upload Death Certificate</span>
+        </div>
+        {!uploading ? (
+          <>
+            <div
+              className={`fnol-upload-zone ${dragover ? 'fnol-upload-zone--dragover' : ''}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragover(true) }}
+              onDragLeave={() => setDragover(false)}
+              onDrop={onDrop}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (f) handleUploadFile(f)
+                }}
+              />
+              <div className="fnol-upload-zone__content">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)', marginBottom: '0.5rem' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <p className="fnol-upload-zone__label">Tap to upload or drag and drop</p>
+                <p className="fnol-upload-zone__hint">PDF, JPG, or PNG</p>
+              </div>
+            </div>
+            {uploadError && (
+              <p className="fnol-upload-card__error">{uploadError}</p>
+            )}
+            <button
+              className="btn btn-ghost btn--sm fnol-upload-card__skip"
+              onClick={handleUploadSkip}
+            >
+              I don't have it right now
+            </button>
+          </>
+        ) : (
+          <div className="fnol-upload-processing">
+            <span className="spinner" style={{ width: 24, height: 24, borderWidth: 2.5 }} />
+            <div>
+              <p className="fnol-upload-processing__label">Analyzing document...</p>
+              <p className="fnol-upload-processing__file">{uploadFileName}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderPayoutChoice = () => {
+    if (payoutChosen) {
+      return (
+        <div className="fnol-policy-card" style={{ borderLeftColor: 'var(--carrier-accent)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--carrier-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <span className="font-semibold">
+              {payoutChosen === 'lump_sum' ? 'Lump Sum Payment' : 'Structured Payments'}
+            </span>
+          </div>
+          <p className="text-sm" style={{ color: 'var(--color-text-secondary)', margin: '0.375rem 0 0' }}>
+            {payoutChosen === 'lump_sum'
+              ? 'Full benefit amount paid in a single payment'
+              : 'Benefit paid in scheduled installments over time'}
+          </p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="fnol-policy-card" style={{ borderLeftColor: 'var(--carrier-accent)' }}>
+        <p className="font-semibold" style={{ marginBottom: '0.75rem' }}>How would you like to receive the benefit?</p>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            className="btn btn-primary btn--sm"
+            style={{ flex: 1 }}
+            onClick={() => handlePayoutChoice('lump_sum')}
+            disabled={streaming}
+          >
+            Lump Sum
+          </button>
+          <button
+            className="btn btn-outline btn--sm"
+            style={{ flex: 1 }}
+            onClick={() => handlePayoutChoice('structured')}
+            disabled={streaming}
+          >
+            Structured Payments
+          </button>
+        </div>
+        <p className="text-sm" style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: 0 }}>
+          One-time payment &middot; or scheduled installments
+        </p>
+      </div>
+    )
+  }
+
+  const renderReview = () => (
+    <div className="fnol-review-card">
+      <p className="font-semibold" style={{ marginBottom: '0.75rem' }}>Review your claim</p>
+      <div className="extraction-card" style={{ marginBottom: '1rem' }}>
+        {FNOL_REQUIRED.map(f => (
+          <div key={f} className="extraction-row">
+            <span className="extraction-label">{FIELD_LABELS[f]}</span>
+            <span className="extraction-value">
+              {String(draft[f as keyof typeof draft] || '—')}
+            </span>
+          </div>
+        ))}
+      </div>
+      <label className="checkbox-option" style={{ marginBottom: '0.75rem' }}>
+        <input
+          type="checkbox"
+          checked={certified}
+          onChange={e => setCertified(e.target.checked)}
+        />
+        <span className="text-sm">
+          I certify that the information provided is true and accurate to the best of my knowledge.
+        </span>
+      </label>
+      <button
+        className="btn btn-primary btn--full"
+        disabled={!certified || submitting}
+        onClick={handleSubmit}
+      >
+        {submitting ? 'Submitting...' : 'Submit Claim'}
+      </button>
+    </div>
+  )
 
   return (
     <div className="fnol-chat">
@@ -280,164 +599,39 @@ export default function CarrierChat() {
         )}
       </div>
 
-      {/* Messages */}
+      {/* Messages + inline widgets */}
       <div className="chat-messages" style={{ flex: 1 }}>
-        {messages.map((msg, i) => (
-          <div key={i} className={`chat-message chat-message--${msg.role}`}>
-            <div className="chat-bubble">
-              {msg.content || (streaming && i === messages.length - 1 ? '' : '')}
-              {streaming && i === messages.length - 1 && msg.role === 'assistant' && msg.content === '' && (
-                <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-              )}
-            </div>
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          // Widget messages render inline at their position
+          if (msg.widget === 'claim_created') {
+            return <div key={i}>{renderClaimCreated(msg.widgetData)}</div>
+          }
+          if (msg.widget === 'upload_cert') {
+            return <div key={i}>{renderUploadWidget()}</div>
+          }
+          if (msg.widget === 'choose_payout') {
+            return <div key={i}>{renderPayoutChoice()}</div>
+          }
+          if (msg.widget === 'review') {
+            return <div key={i}>{renderReview()}</div>
+          }
 
-        {/* Death certificate upload widget */}
-        {showUploadWidget && !extractedData && (
-          <div className="fnol-upload-card">
-            <div className="fnol-upload-card__header">
-              <span className="fnol-upload-card__icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="18" x2="12" y2="12" />
-                  <line x1="9" y1="15" x2="15" y2="15" />
-                </svg>
-              </span>
-              <span className="fnol-upload-card__title">Upload Death Certificate</span>
-            </div>
-            {!uploading ? (
-              <>
-                <div
-                  className={`fnol-upload-zone ${dragover ? 'fnol-upload-zone--dragover' : ''}`}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={e => { e.preventDefault(); setDragover(true) }}
-                  onDragLeave={() => setDragover(false)}
-                  onDrop={onDrop}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    style={{ display: 'none' }}
-                    onChange={e => {
-                      const f = e.target.files?.[0]
-                      if (f) handleUploadFile(f)
-                    }}
-                  />
-                  <div className="fnol-upload-zone__content">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)', marginBottom: '0.5rem' }}>
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17 8 12 3 7 8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <p className="fnol-upload-zone__label">Tap to upload or drag and drop</p>
-                    <p className="fnol-upload-zone__hint">PDF, JPG, or PNG</p>
-                  </div>
-                </div>
-                {uploadError && (
-                  <p className="fnol-upload-card__error">{uploadError}</p>
+          // Skip empty non-streaming messages
+          if (!msg.content && !(streaming && i === messages.length - 1 && msg.role === 'assistant')) {
+            return null
+          }
+
+          return (
+            <div key={i} className={`chat-message chat-message--${msg.role}`}>
+              <div className="chat-bubble">
+                {msg.content}
+                {streaming && i === messages.length - 1 && msg.role === 'assistant' && msg.content === '' && (
+                  <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
                 )}
-                <button
-                  className="btn btn-ghost btn--sm fnol-upload-card__skip"
-                  onClick={handleUploadSkip}
-                >
-                  I don't have it right now
-                </button>
-              </>
-            ) : (
-              <div className="fnol-upload-processing">
-                <span className="spinner" style={{ width: 24, height: 24, borderWidth: 2.5 }} />
-                <div>
-                  <p className="fnol-upload-processing__label">Analyzing document...</p>
-                  <p className="fnol-upload-processing__file">{uploadFileName}</p>
-                </div>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Death certificate extraction confirmation card */}
-        {showUploadWidget && extractedData && (
-          <div className="fnol-extraction-card">
-            <div className="fnol-extraction-card__header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-              <span className="fnol-extraction-card__title">Certificate processed</span>
             </div>
-            <div className="extraction-card">
-              {EXTRACTION_FIELDS.map(([key, label]) => {
-                const value = extractedData[key]
-                if (!value) return null
-                return (
-                  <div key={key} className="extraction-row">
-                    <span className="extraction-label">{label}</span>
-                    <span className="extraction-value">{value}</span>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="fnol-extraction-card__actions">
-              <button className="btn btn-primary btn--sm" onClick={handleUploadConfirm}>
-                Looks correct — continue
-              </button>
-              <button
-                className="btn btn-ghost btn--sm"
-                onClick={() => {
-                  setExtractedData(null)
-                  setUploadFileName('')
-                  setUploadError(null)
-                  setDraft({
-                    death_certificate_uploaded: false,
-                    death_certificate_extracted: undefined,
-                    date_of_death: undefined,
-                    cause_of_death: undefined,
-                    manner_of_death: undefined,
-                  } as any)
-                }}
-              >
-                Re-upload
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Review card */}
-        {showReview && draft.claim_id && (
-          <div className="fnol-review-card">
-            <p className="font-semibold" style={{ marginBottom: '0.75rem' }}>Review your claim</p>
-            <div className="extraction-card" style={{ marginBottom: '1rem' }}>
-              {FNOL_REQUIRED.map(f => (
-                <div key={f} className="extraction-row">
-                  <span className="extraction-label">{FIELD_LABELS[f]}</span>
-                  <span className="extraction-value">
-                    {String(draft[f as keyof typeof draft] || '—')}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <label className="checkbox-option" style={{ marginBottom: '0.75rem' }}>
-              <input
-                type="checkbox"
-                checked={certified}
-                onChange={e => setCertified(e.target.checked)}
-              />
-              <span className="text-sm">
-                I certify that the information provided is true and accurate to the best of my knowledge.
-              </span>
-            </label>
-            <button
-              className="btn btn-primary btn--full"
-              disabled={!certified || submitting}
-              onClick={handleSubmit}
-            >
-              {submitting ? 'Submitting...' : 'Submit Claim'}
-            </button>
-          </div>
-        )}
+          )
+        })}
 
         <div ref={endRef} />
       </div>

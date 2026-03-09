@@ -85,7 +85,8 @@ export interface FNOLMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
-  widget?: 'policy_confirm' | 'review' | 'upload_cert'
+  widget?: 'policy_confirm' | 'review' | 'upload_cert' | 'claim_created' | 'choose_payout'
+  widgetData?: any
 }
 
 // Draft claim state stored in ClaimContext across multi-step form
