@@ -130,6 +130,11 @@ Claim data: {json.dumps(claim_data, default=str)}
 Policy data: {json.dumps(policy_data, default=str)}
 Months since policy issued: {months_since_issue:.1f}
 
+Pay special attention to:
+- Cross-reference manner/cause of death against application health questionnaire answers (especially hazardous activities)
+- Recent beneficiary changes (look at beneficiary_history for changes close to date of death)
+- Contestability period status
+
 Return JSON only:
 {{
   "risk_level": "low|medium|high",
@@ -162,13 +167,53 @@ Return JSON only:
         recommendation = "siu_referral"
 
     manner = (claim_data.get("manner_of_death") or "").lower()
-    if manner in ("accident", "undetermined"):
+    cause = (claim_data.get("cause_of_death") or "").lower()
+
+    # Check for hazardous activity mismatch
+    if manner == "accident" and any(kw in cause for kw in ("climbing", "fall", "rock")):
+        flags.append("Cause of death involves rock climbing — applicant denied hazardous activity participation on application Q12")
+        risk_level = "high"
+        recommendation = "siu_referral"
+    elif manner in ("accident", "undetermined"):
         flags.append(f"Manner of death ({manner}) requires additional documentation")
         if risk_level == "low":
             risk_level = "medium"
 
+    # Check for recent beneficiary changes
+    bene_history = policy_data.get("beneficiary_history") or []
+    if len(bene_history) >= 2:
+        last_change = bene_history[-1]
+        prev_bene = bene_history[-2]
+        change_date = last_change.get("effective_date", "")
+        if change_date and last_change.get("change_type") == "beneficiary_change":
+            try:
+                changed = datetime.strptime(change_date, "%Y-%m-%d").date()
+                months_since_change = (date.today() - changed).days / 30
+                if months_since_change < 12:
+                    flags.append(
+                        f"Beneficiary changed from {prev_bene['name']} ({prev_bene['relationship']}) "
+                        f"to {last_change['name']} ({last_change['relationship']}) "
+                        f"{int(months_since_change)} months before death"
+                    )
+                    # Beneficiary change alone → medium; combined with hazardous activity → high
+                    if risk_level == "high":
+                        recommendation = "siu_referral"
+                    elif risk_level == "low":
+                        risk_level = "medium"
+                        recommendation = "contestability_review"
+            except Exception:
+                pass
+
     summary = f"Death benefit claim submitted. Policy is {months_since_issue:.0f} months old."
-    if contestability_alert:
+    if risk_level == "high" and any("rock climbing" in f.lower() for f in flags):
+        summary = (
+            f"Multiple material concerns — accidental death from rock climbing while applicant denied hazardous activities on Q12."
+        )
+        if any("beneficiary changed" in f.lower() for f in flags):
+            summary += " Combined with a recent beneficiary change. Recommend SIU referral."
+        if contestability_alert:
+            summary += f" Policy is within the 2-year contestability period ({months_since_issue:.0f} months)."
+    elif contestability_alert:
         summary += " Policy is within the 2-year contestability period — recommend medical records review before approving."
     else:
         summary += " Policy is outside the contestability window."
@@ -393,7 +438,7 @@ Guidelines:
         yield word + " "
 
 
-def analyze_contestability(application_text: str, medical_records_text: str) -> dict:
+def analyze_contestability(application_text: str, medical_records_text: str, claim_data: dict = None) -> dict:
     """Compare insurance application answers against medical records to find discrepancies.
 
     This is the killer feature — finds material misrepresentations in seconds
@@ -430,6 +475,17 @@ Rules:
 - Be specific — cite dates, diagnoses, medications, and ICD codes from the records
 - The materiality_assessment should address whether undisclosed conditions relate to cause of death"""
 
+            claim_context = ""
+            if claim_data:
+                claim_context = f"""
+
+=== CLAIM DETAILS ===
+Manner of death: {claim_data.get('manner_of_death', 'unknown')}
+Cause of death: {claim_data.get('cause_of_death', 'unknown')}
+Date of death: {claim_data.get('date_of_death', 'unknown')}
+
+Also cross-reference the cause/manner of death against application questions about hazardous activities."""
+
             prompt = f"""Compare the following insurance application against the medical records and identify all discrepancies.
 
 === INSURANCE APPLICATION ===
@@ -437,7 +493,7 @@ Rules:
 
 === MEDICAL RECORDS ===
 {medical_records_text}
-
+{claim_context}
 Analyze each health question answer against the medical record evidence. Return JSON only."""
 
             messages = [{"role": "user", "content": [{"text": prompt}]}]
@@ -447,44 +503,72 @@ Analyze each health question answer against the medical record evidence. Return 
             print(f"Contestability analysis error: {e}")
 
     # ── Mock fallback — realistic hardcoded data matching synthetic documents ──
+    discrepancies = [
+        {
+            "application_question": "Have you ever been diagnosed with or treated for any form of heart disease, including but not limited to coronary artery disease, arrhythmia, or heart failure?",
+            "applicant_answer": "No",
+            "medical_finding": "Patient was diagnosed with atrial fibrillation (I48.91) on June 15, 2023 and started on metoprolol 25mg BID for rate control and Eliquis 5mg BID for stroke prophylaxis. AFib documented as persistent condition through January 2025.",
+            "source_date": "2023-06-15",
+            "severity": "material",
+            "assessment": "Material misrepresentation — Atrial fibrillation is a form of cardiac arrhythmia (heart disease) that was diagnosed 14 months prior to the application date. This condition was actively being treated with two medications at the time of application. This would have significantly impacted underwriting, likely resulting in a rated policy or decline."
+        },
+        {
+            "application_question": "Have you been prescribed medication for high blood pressure (hypertension)?",
+            "applicant_answer": "No",
+            "medical_finding": "Patient was diagnosed with hypertension (I10) on September 20, 2023 with BP reading of 148/92. Started on lisinopril 10mg daily, later increased to 20mg on August 5, 2024. Was actively taking lisinopril at time of application.",
+            "source_date": "2023-09-20",
+            "severity": "material",
+            "assessment": "Material misrepresentation — Hypertension was diagnosed 11 months before the application and actively treated with lisinopril at the time of application. Combined with the undisclosed atrial fibrillation, this represents a significantly elevated cardiovascular risk profile that was concealed from the insurer."
+        },
+        {
+            "application_question": "Have you been hospitalized or visited an emergency room in the past 5 years for any reason?",
+            "applicant_answer": "No",
+            "medical_finding": "Patient presented to the Emergency Department on March 10, 2024 with acute chest pain radiating to left arm. Evaluated for possible MI with serial troponins (negative x2), ECG, and chest X-ray. Pain resolved with sublingual nitroglycerin. Discharged with follow-up.",
+            "source_date": "2024-03-10",
+            "severity": "material",
+            "assessment": "Material misrepresentation — ER visit for acute chest pain occurred 9 months before the application date. The presentation (chest pain with left arm radiation, requiring nitroglycerin) is directly relevant to cardiovascular risk assessment. The subsequent stress test and cardiology referral further demonstrate the significance of this event."
+        },
+        {
+            "application_question": "Are you currently taking any prescription medications?",
+            "applicant_answer": "No",
+            "medical_finding": "As of the last visit before the application (January 12, 2025), patient was actively taking four prescription medications: metoprolol 25mg BID, Eliquis 5mg BID, lisinopril 20mg daily, and atorvastatin 20mg daily.",
+            "source_date": "2025-01-12",
+            "severity": "material",
+            "assessment": "Material misrepresentation — Patient was taking four prescription medications for cardiovascular conditions at the time of application. These medications (beta-blocker, anticoagulant, ACE inhibitor, statin) collectively indicate a significant cardiac risk profile that was entirely undisclosed."
+        },
+    ]
+
+    # Conditionally add hazardous activity discrepancy for accidental death claims
+    claim_manner = ""
+    claim_cause = ""
+    if claim_data:
+        claim_manner = (claim_data.get("manner_of_death") or "").lower()
+        claim_cause = (claim_data.get("cause_of_death") or "").lower()
+
+    if claim_manner == "accident" and any(kw in claim_cause for kw in ("climbing", "fall", "rock", "trauma")):
+        discrepancies.append({
+            "application_question": "Do you participate in any hazardous activities (e.g., skydiving, scuba diving, motorsports, rock climbing)?",
+            "applicant_answer": "No",
+            "medical_finding": "Death certificate indicates death by blunt force trauma from a fall during recreational rock climbing at Starved Rock State Park. The death circumstance directly involves a hazardous activity that was denied on the application.",
+            "source_date": "2026-03-03",
+            "severity": "material",
+            "assessment": "Material misrepresentation — The insured died while rock climbing, an activity specifically listed on Q12 that the applicant denied participating in. This is directly relevant to the cause of death and represents a concealed risk factor."
+        })
+
+    count = len(discrepancies)
+    summary = f"{count} material misrepresentations identified on the insurance application. The applicant denied having heart disease, hypertension, ER visits, and prescription medications — all of which are directly contradicted by medical records showing active atrial fibrillation, hypertension, an ER visit for chest pain, and four daily cardiovascular medications."
+    if count > 4:
+        summary += " Additionally, the death certificate reveals the insured died during rock climbing — a hazardous activity specifically denied on the application."
+
+    materiality = "The undisclosed conditions are directly and causally related to the cause of death (acute myocardial infarction / STEMI). The insured had a documented history of atrial fibrillation, hypertension, hyperlipidemia, and a prior ER visit for chest pain — all significant cardiovascular risk factors that culminated in the fatal cardiac event. Had these conditions been disclosed at application, the policy would very likely have been rated at a significantly higher premium, issued with exclusions, or declined entirely. These misrepresentations are material under Illinois insurance law (215 ILCS 5/154) and the policy is within the 2-year contestability period."
+    if count > 4:
+        materiality = "The insured died from blunt force trauma during recreational rock climbing — an activity specifically listed and denied on application Q12. This represents a direct, causal link between the misrepresentation and the insured event. Additionally, four medical misrepresentations were identified: undisclosed atrial fibrillation, hypertension, an ER visit for chest pain, and four active prescription medications. The combination of a hazardous activity directly causing death plus multiple medical misrepresentations represents an exceptionally strong basis for contestability action under Illinois insurance law (215 ILCS 5/154)."
+
     return {
-        "discrepancies": [
-            {
-                "application_question": "Have you ever been diagnosed with or treated for any form of heart disease, including but not limited to coronary artery disease, arrhythmia, or heart failure?",
-                "applicant_answer": "No",
-                "medical_finding": "Patient was diagnosed with atrial fibrillation (I48.91) on June 15, 2023 and started on metoprolol 25mg BID for rate control and Eliquis 5mg BID for stroke prophylaxis. AFib documented as persistent condition through January 2025.",
-                "source_date": "2023-06-15",
-                "severity": "material",
-                "assessment": "Material misrepresentation — Atrial fibrillation is a form of cardiac arrhythmia (heart disease) that was diagnosed 14 months prior to the application date. This condition was actively being treated with two medications at the time of application. This would have significantly impacted underwriting, likely resulting in a rated policy or decline."
-            },
-            {
-                "application_question": "Have you been prescribed medication for high blood pressure (hypertension)?",
-                "applicant_answer": "No",
-                "medical_finding": "Patient was diagnosed with hypertension (I10) on September 20, 2023 with BP reading of 148/92. Started on lisinopril 10mg daily, later increased to 20mg on August 5, 2024. Was actively taking lisinopril at time of application.",
-                "source_date": "2023-09-20",
-                "severity": "material",
-                "assessment": "Material misrepresentation — Hypertension was diagnosed 11 months before the application and actively treated with lisinopril at the time of application. Combined with the undisclosed atrial fibrillation, this represents a significantly elevated cardiovascular risk profile that was concealed from the insurer."
-            },
-            {
-                "application_question": "Have you been hospitalized or visited an emergency room in the past 5 years for any reason?",
-                "applicant_answer": "No",
-                "medical_finding": "Patient presented to the Emergency Department on March 10, 2024 with acute chest pain radiating to left arm. Evaluated for possible MI with serial troponins (negative x2), ECG, and chest X-ray. Pain resolved with sublingual nitroglycerin. Discharged with follow-up.",
-                "source_date": "2024-03-10",
-                "severity": "material",
-                "assessment": "Material misrepresentation — ER visit for acute chest pain occurred 9 months before the application date. The presentation (chest pain with left arm radiation, requiring nitroglycerin) is directly relevant to cardiovascular risk assessment. The subsequent stress test and cardiology referral further demonstrate the significance of this event."
-            },
-            {
-                "application_question": "Are you currently taking any prescription medications?",
-                "applicant_answer": "No",
-                "medical_finding": "As of the last visit before the application (January 12, 2025), patient was actively taking four prescription medications: metoprolol 25mg BID, Eliquis 5mg BID, lisinopril 20mg daily, and atorvastatin 20mg daily.",
-                "source_date": "2025-01-12",
-                "severity": "material",
-                "assessment": "Material misrepresentation — Patient was taking four prescription medications for cardiovascular conditions at the time of application. These medications (beta-blocker, anticoagulant, ACE inhibitor, statin) collectively indicate a significant cardiac risk profile that was entirely undisclosed."
-            },
-        ],
-        "summary": "Four material misrepresentations identified on the insurance application. The applicant denied having heart disease, hypertension, ER visits, and prescription medications — all of which are directly contradicted by medical records showing active atrial fibrillation, hypertension, an ER visit for chest pain, and four daily cardiovascular medications.",
+        "discrepancies": discrepancies,
+        "summary": summary,
         "recommendation": "contestability_review",
-        "materiality_assessment": "The undisclosed conditions are directly and causally related to the cause of death (acute myocardial infarction / STEMI). The insured had a documented history of atrial fibrillation, hypertension, hyperlipidemia, and a prior ER visit for chest pain — all significant cardiovascular risk factors that culminated in the fatal cardiac event. Had these conditions been disclosed at application, the policy would very likely have been rated at a significantly higher premium, issued with exclusions, or declined entirely. These misrepresentations are material under Illinois insurance law (215 ILCS 5/154) and the policy is within the 2-year contestability period."
+        "materiality_assessment": materiality,
     }
 
 

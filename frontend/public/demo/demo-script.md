@@ -15,7 +15,9 @@ A step-by-step walkthrough of the ClaimPath demo application for presenting to p
 | Customer App (Carrier Login) | john.smith@email.com | password123 | Any credentials work; these match the demo persona |
 | Adjuster Dashboard | jmartinez | password123 | Also available: `rthompson`, `apatel` |
 
-**Death certificate PDF:** Available at `/demo/death-certificate-smith.pdf` on the demo site (download it locally before the demo or have it ready in a separate tab)
+**Death certificate PDFs (choose one):**
+- **Low-risk:** `/demo/death-certificate-smith.pdf` — natural death, cardiac arrest (straightforward claim)
+- **High-risk:** `/demo/death-certificate-smith-high-risk.pdf` — accidental death, rock climbing fall (triggers hazardous activity mismatch + beneficiary change flags)
 
 **Policy number to use:** `LT-29471` (John Michael Smith, $500K Term Life, 14 months old -- triggers contestability)
 
@@ -24,7 +26,7 @@ A step-by-step walkthrough of the ClaimPath demo application for presenting to p
 ## Pre-Demo Checklist
 
 - [ ] Open https://claimpath.click in a browser (Chrome recommended)
-- [ ] Download the death certificate PDF: https://claimpath.click/demo/death-certificate-smith.pdf and save it to your desktop or downloads folder
+- [ ] Download the death certificate PDF you want to use: either `death-certificate-smith.pdf` (low-risk) or `death-certificate-smith-high-risk.pdf` (high-risk) and save to your desktop
 - [ ] If showing the customer app on a phone, have it open in a separate mobile browser or use browser dev tools to emulate a mobile viewport (390x844 iPhone 14 Pro)
 - [ ] If possible, have two browser windows ready: one for the customer experience, one for the adjuster dashboard
 - [ ] Clear any previous chat state by clearing localStorage if you have run the demo before (DevTools > Application > Local Storage > Clear)
@@ -171,7 +173,7 @@ The agent requests a death certificate upload. An **upload widget** appears inli
 
 **What to do:**
 1. Click the upload zone
-2. Select the death certificate PDF you downloaded earlier (`death-certificate-smith.pdf`)
+2. Select the death certificate PDF you downloaded earlier (`death-certificate-smith.pdf` for low-risk or `death-certificate-smith-high-risk.pdf` for high-risk)
 3. A "**Analyzing document...**" spinner appears while the AI processes the document
 
 **What happens after upload:**

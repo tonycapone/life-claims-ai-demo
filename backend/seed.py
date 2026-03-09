@@ -52,6 +52,18 @@ def seed():
                 "beneficiaries": [
                     {"name": "Sarah Smith", "relationship": "Spouse", "percentage": 100}
                 ],
+                "beneficiary_history": [
+                    {
+                        "name": "Margaret Smith", "relationship": "Mother", "percentage": 100,
+                        "effective_date": str(today - timedelta(days=14 * 30)),
+                        "change_type": "original",
+                    },
+                    {
+                        "name": "Sarah Smith", "relationship": "Spouse", "percentage": 100,
+                        "effective_date": str(today - timedelta(days=90)),
+                        "change_type": "beneficiary_change",
+                    },
+                ],
                 "application_url": "demo/application-smith.pdf",
                 "medical_records_url": "demo/medical-records-smith.pdf",
             },
@@ -122,6 +134,8 @@ def seed():
                     existing.application_url = p["application_url"]
                 if p.get("medical_records_url") and not existing.medical_records_url:
                     existing.medical_records_url = p["medical_records_url"]
+                if p.get("beneficiary_history") and not existing.beneficiary_history:
+                    existing.beneficiary_history = p["beneficiary_history"]
         db.commit()
         print("✅ Policies seeded")
 

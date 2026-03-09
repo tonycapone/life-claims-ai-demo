@@ -34,6 +34,7 @@ class Policy(Base):
     policy_type = Column(Enum(PolicyType), nullable=False)
     status = Column(Enum(PolicyStatus), default=PolicyStatus.IN_FORCE)
     beneficiaries = Column(JSON)               # [{name, relationship, percentage}]
+    beneficiary_history = Column(JSON)         # [{name, relationship, percentage, effective_date, change_type}]
     application_url = Column(String)           # path to insurance application PDF
     medical_records_url = Column(String)       # path to medical records PDF
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -76,6 +76,17 @@ def _build_system_prompt(policy: Policy) -> str:
     bene_list = ", ".join(
         f"{b['name']} ({b['relationship']}, {b['percentage']}%)" for b in benes
     )
+
+    # Include beneficiary change history if available
+    history = policy.beneficiary_history or []
+    if len(history) >= 2:
+        last = history[-1]
+        prev = history[-2]
+        bene_list += (
+            f"\n  (Beneficiary changed from {prev['name']} [{prev['relationship']}] "
+            f"to {last['name']} [{last['relationship']}] on {last.get('effective_date', 'unknown')})"
+        )
+
     policy_type_labels = {
         "term": "Term Life",
         "final_expense": "Final Expense",
@@ -160,16 +171,28 @@ def build_carrier_agent(db: Session, sse_queue: asyncio.Queue, policy: Policy, d
     @tool
     def get_beneficiaries(policy_number: str) -> str:
         """Get the list of beneficiaries for a policy, including names,
-        relationships, and payout percentages."""
+        relationships, payout percentages, and any change history."""
         p = db.query(Policy).filter_by(policy_number=policy_number.upper()).first()
         if not p:
             return f"No policy found with number {policy_number}."
         benes = p.beneficiaries or []
         if not benes:
             return "No beneficiaries on file for this policy."
-        lines = []
+        lines = ["Current beneficiaries:"]
         for b in benes:
             lines.append(f"- {b['name']} ({b['relationship']}): {b['percentage']}%")
+
+        history = p.beneficiary_history or []
+        if history:
+            lines.append("\nChange history:")
+            for entry in history:
+                change_type = entry.get("change_type", "unknown")
+                label = "Original" if change_type == "original" else "Changed"
+                lines.append(
+                    f"- {label} ({entry.get('effective_date', 'unknown')}): "
+                    f"{entry['name']} ({entry['relationship']}, {entry['percentage']}%)"
+                )
+
         return "\n".join(lines)
 
     @tool

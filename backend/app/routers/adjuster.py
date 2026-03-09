@@ -200,7 +200,12 @@ def run_contestability(
     application_text = _read_demo_text(app_path, "application")
     medical_text = _read_demo_text(med_path, "medical_records")
 
-    result = analyze_contestability(application_text, medical_text)
+    claim_info = {
+        "manner_of_death": claim.manner_of_death,
+        "cause_of_death": claim.cause_of_death,
+        "date_of_death": claim.date_of_death,
+    }
+    result = analyze_contestability(application_text, medical_text, claim_data=claim_info)
 
     # Store on the claim
     claim.contestability_analysis = result

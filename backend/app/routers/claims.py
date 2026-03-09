@@ -377,7 +377,10 @@ def submit_claim(claim_id: str, db: Session = Depends(get_db)):
         "cause_of_death": claim.cause_of_death,
         "manner_of_death": claim.manner_of_death,
     }
-    policy_data = {"issue_date": policy.issue_date if policy else None}
+    policy_data = {
+        "issue_date": policy.issue_date if policy else None,
+        "beneficiary_history": policy.beneficiary_history if policy else None,
+    }
     risk = score_risk(claim_data, policy_data)
 
     claim.status = ClaimStatus.SUBMITTED

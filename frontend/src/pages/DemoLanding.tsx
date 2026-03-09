@@ -151,8 +151,20 @@ export default function DemoLanding() {
           >
             <FontAwesomeIcon icon={faFilePdf} />
             <div>
-              <strong>Death Certificate</strong>
-              <span>John Michael Smith — upload this during the claim flow</span>
+              <strong>Death Certificate (Low Risk)</strong>
+              <span>John Michael Smith — natural death, cardiac arrest</span>
+            </div>
+          </a>
+          <a
+            href="/demo/death-certificate-smith-high-risk.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="demo-resource-link demo-resource-link--pdf"
+          >
+            <FontAwesomeIcon icon={faFilePdf} />
+            <div>
+              <strong>Death Certificate (High Risk)</strong>
+              <span>John Michael Smith — accidental death, rock climbing fall</span>
             </div>
           </a>
           <a
