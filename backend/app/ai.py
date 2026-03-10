@@ -229,7 +229,8 @@ Return JSON only:
 
 
 def stream_copilot(claim_data: dict, message: str) -> Generator[str, None, None]:
-    """Stream adjuster copilot response as SSE chunks via Bedrock converse_stream."""
+    """DEPRECATED: Use adjuster_agent.build_adjuster_agent() instead.
+    Kept for reference. Stream adjuster copilot response via Bedrock converse_stream."""
     system_prompt = f"""You are an AI assistant for a life insurance claims adjuster. You have full context on the following claim:
 
 {json.dumps(claim_data, default=str, indent=2)}

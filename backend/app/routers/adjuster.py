@@ -7,9 +7,11 @@ from passlib.context import CryptContext
 from app.database import get_db
 from app.models import Claim, ClaimStatus, RiskLevel, Adjuster, Policy
 from app.auth import create_access_token, get_current_adjuster
-from app.ai import stream_copilot, draft_communication, analyze_contestability
+from app.ai import draft_communication, analyze_contestability
+from app.adjuster_agent import build_adjuster_agent, mock_copilot_response, _bedrock_available
 from app.regulatory import get_regulatory_deadlines
 import json
+import asyncio
 import os
 from datetime import date
 
@@ -382,13 +384,18 @@ Manner of Death: Natural"""
 
 # ── AI Copilot ────────────────────────────────────────────
 
+class ChatMessageIn(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
     claim_id: str
     message: str
+    messages: list[ChatMessageIn] = []
 
 
 @router.post("/chat")
-def chat(
+async def chat(
     req: ChatRequest,
     db: Session = Depends(get_db),
     _: Adjuster = Depends(get_current_adjuster),
@@ -397,27 +404,55 @@ def chat(
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found")
 
-    claim_data = {
-        "claim_number": claim.claim_number,
-        "insured_name": claim.insured_name,
-        "beneficiary_name": claim.beneficiary_name,
-        "date_of_death": claim.date_of_death,
-        "cause_of_death": claim.cause_of_death,
-        "manner_of_death": claim.manner_of_death,
-        "policy_number": claim.policy_number,
-        "face_amount": claim.face_amount,
-        "status": claim.status.value if claim.status else None,
-        "risk_level": claim.risk_level.value if claim.risk_level else None,
-        "risk_flags": claim.risk_flags,
-        "contestability_alert": claim.contestability_alert,
-        "months_since_issue": claim.months_since_issue,
-        "ai_summary": claim.ai_summary,
-        "adjuster_notes": claim.adjuster_notes,
-    }
+    # Mock fallback when Bedrock is unavailable
+    if not _bedrock_available():
+        def mock_stream():
+            for event in mock_copilot_response(req.message, claim):
+                yield f"data: {json.dumps(event)}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(mock_stream(), media_type="text/event-stream")
 
-    def event_stream():
-        for chunk in stream_copilot(claim_data, req.message):
-            yield f"data: {json.dumps({'text': chunk})}\n\n"
+    # Build agent with tools
+    agent = build_adjuster_agent(db, req.claim_id)
+
+    # Populate conversation history (cap at 20 messages)
+    prior = req.messages[-20:] if req.messages else []
+    if prior:
+        agent.messages = [
+            {"role": m.role, "content": [{"text": m.content}]}
+            for m in prior
+        ]
+
+    async def event_stream():
+        loop = asyncio.get_event_loop()
+        q: asyncio.Queue = asyncio.Queue()
+
+        def _run_agent():
+            try:
+                result = agent(req.message)
+                # Extract final text from the agent result
+                text = ""
+                if hasattr(result, "message") and result.message:
+                    for block in result.message.get("content", []):
+                        if "text" in block:
+                            text += block["text"]
+                elif hasattr(result, "__str__"):
+                    text = str(result)
+                if text:
+                    loop.call_soon_threadsafe(q.put_nowait, {"type": "text", "data": text})
+            except Exception as e:
+                loop.call_soon_threadsafe(q.put_nowait, {"type": "text", "data": f"Error: {e}"})
+            finally:
+                loop.call_soon_threadsafe(q.put_nowait, None)
+
+        # Run agent in thread to avoid blocking the event loop
+        loop.run_in_executor(None, _run_agent)
+
+        while True:
+            event = await q.get()
+            if event is None:
+                break
+            yield f"data: {json.dumps(event)}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

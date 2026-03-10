@@ -42,7 +42,11 @@ export default function CopilotPanel({ claimId, initialSummary }: Props) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adjuster_token')}`,
         },
-        body: JSON.stringify({ claim_id: claimId, message: text }),
+        body: JSON.stringify({
+          claim_id: claimId,
+          message: text,
+          messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
+        }),
       })
 
       const reader = response.body?.getReader()
@@ -65,11 +69,11 @@ export default function CopilotPanel({ claimId, initialSummary }: Props) {
 
           try {
             const event = JSON.parse(payload)
-            if (event.text) {
+            if (event.type === 'text' && event.data) {
               setMessages(prev => {
                 const updated = [...prev]
                 const last = updated[updated.length - 1]
-                updated[updated.length - 1] = { ...last, content: last.content + event.text }
+                updated[updated.length - 1] = { ...last, content: last.content + event.data }
                 return updated
               })
             }
