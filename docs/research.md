@@ -2,20 +2,7 @@
 
 ## Overview
 
-This document captures research on the life insurance death benefit claims process, including current workflows, pain points, industry terminology, and AI opportunities. The goal is to inform a rapid prototype for the prototype exercise.
-
----
-
-## Industry Context
-
-the carrier platform is a life insurance technology platform that licenses its software to carriers. They started as a direct-to-consumer life insurer, built their entire tech stack from scratch (application, underwriting, policy admin, distribution), then pivoted to making that platform available to other carriers.
-
-Their pitch: replace fragmented, siloed legacy tech with a unified modern platform. They support term life, final expense, IUL, and more. 
-
-Key stats:
-- Helped a carrier launch a final expense product in 7 months (normally >1 year)
-- 200%+ increase in conversion rates for one partner's digital application
-- Reduced underwriting costs by 22% for another partner
+This document captures research on the life insurance death benefit claims process, including current workflows, pain points, industry terminology, and AI opportunities.
 
 ---
 
