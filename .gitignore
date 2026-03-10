@@ -8,5 +8,6 @@ __pycache__/
 venv/
 .DS_Store
 docs/demo-notes.md
+docs/demo-script-internal.md
 cdk.out/
 cdk-outputs.json
